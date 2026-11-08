@@ -643,6 +643,7 @@ nav button.on{color:var(--lemon)}
   <button class="item" data-go="cards"><span class="ic">🃏</span><span>Meus cards<small>Revise suas palavras</small></span></button>
   <hr>
   <button class="item" data-go="memory"><span class="ic">🧠</span><span>O que lembram de você<small>Nome, interesses e progresso</small></span></button>
+  <button class="item" id="redoOnb"><span class="ic">📏</span><span>Refazer boas-vindas e teste de nível</span></button>
   <button class="item" id="bigTxt"><span class="ic">🔠</span><span>Letra grande<small id="bigTxtS">desligada</small></span></button>
   <button class="item" data-go="sound"><span class="ic">🔊</span><span>Testar som</span></button>
   <button class="item" id="diagBtn"><span class="ic">🩺</span><span>Testar conexão com os professores</span></button>
@@ -2396,6 +2397,7 @@ $('diagBtn').onclick=async()=>{
 };
 $('lBi').onclick=()=>{LU.bi=!LU.bi;LU.biForced=LU.bi;$('lBi').textContent='🇧🇷🇺🇸 Bilíngue: '+(LU.bi?'sim':'não');$('lBi').classList.toggle('on',LU.bi);toast(LU.bi?'Agora o professor mistura português e inglês':'Agora a conversa é toda em inglês')};
 function applyBig(){const on=(()=>{try{return localStorage.getItem('chiclete-big')==='1'}catch(e){return false}})();document.body.classList.toggle('big',on);const s=$('bigTxtS');if(s)s.textContent=on?'ligada':'desligada'}
+$('redoOnb').onclick=()=>{$('drawer').classList.add('hidden');OB={step:0,name:MEM.name||'',goal:'',q:0,score:0,picked:null,tk:TK};$('onb').classList.remove('hidden');onbRender()};
 $('bigTxt').onclick=()=>{let on=false;try{on=localStorage.getItem('chiclete-big')!=='1';localStorage.setItem('chiclete-big',on?'1':'0')}catch(e){}applyBig();toast(on?'Letra grande ligada':'Letra normal')};
 applyBig();
 $('lMoreBtn').onclick=()=>$('lMore').classList.toggle('hidden');

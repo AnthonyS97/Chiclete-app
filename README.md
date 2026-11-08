@@ -62,7 +62,8 @@ Peça as mudanças ao Claude, baixe o arquivo novo e, no GitHub, abra o arquivo 
 | `ACCESS_CODE` | vazio | Se preenchido, exige código para usar os professores (teste fechado) |
 | `MODEL_FAST` | `claude-haiku-5-5` | Modelo do modo ⚡ Rápida (barato) |
 | `MODEL_MAX` | `claude-sonnet-5-5` | Modelo do modo 🎓 Máxima (~20× mais caro) |
-| `OPENAI_API_KEY` | vazio | Recomendado para iPhone. Com ela, o botão 🎤 grava a fala e transcreve no servidor, o caminho mais estável no iPhone. No Android o app usa o reconhecimento do próprio Chrome. Custa centavos por minuto. |
+| `TTS_VOICE_LUA` / `TTS_VOICE_ANTHONY` | `coral` / `ash` | Opcional. Troca a voz neural de cada professor. |
+| `OPENAI_API_KEY` | vazio | Recomendado. Liga a **voz neural humanizada** da Lua e do Anthony (api/tts) e, no iPhone, Com ela, o botão 🎤 grava a fala e transcreve no servidor, o caminho mais estável no iPhone. No Android o app usa o reconhecimento do próprio Chrome. Custa centavos por minuto. |
 
 Depois de mudar uma variável, vá em **Deployments → ⋯ → Redeploy**.
 

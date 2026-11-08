@@ -412,6 +412,32 @@ body.big .wrap,body.big .sheet,body.big .dock{zoom:1.18}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
 
+.logo{display:block;max-width:62vw}
+.welcome2{text-align:center;padding-top:8px}
+.welcome2 .logo{margin:0 auto 18px}
+.wduo{display:flex;justify-content:center;gap:0;margin:6px 0 18px}
+.wduo .av{width:118px;height:118px;box-shadow:0 0 0 5px #170f2e,0 10px 30px #0007}
+.wduo .av+.av{margin-left:-18px}
+.wtitle{font-family:Fredoka,sans-serif;font-size:30px;line-height:1.15;margin:0 0 10px}
+.wsub{color:var(--dim);font-size:17px;line-height:1.5;margin:0 0 16px}
+.wlist{list-style:none;padding:0;margin:0 0 20px;text-align:left;display:grid;gap:8px}
+.wlist li{background:#ffffff0c;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16.5px;font-weight:700}
+.lvintro{text-align:center}.lvintro .wlist{margin-top:14px}
+.lvicon{font-size:56px;margin:10px 0}
+.qhead{font-weight:800;color:var(--lemon);font-size:15px;letter-spacing:.3px}
+.qbar{height:10px;border-radius:9px;background:#ffffff14;margin:10px 0 14px;overflow:hidden}.qbar i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--lemon));transition:width .4s}
+.qtext{font-family:Fredoka,sans-serif;font-size:25px;line-height:1.3;margin:6px 0 16px}
+.lvres{text-align:center;margin-top:10px;padding:18px;border-radius:22px;background:linear-gradient(160deg,#2c1d57,#1e1640);border:1px solid var(--line)}
+.lvbig{font-size:60px}
+.lvmeter{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
+.lvmeter div{display:flex;flex-direction:column;gap:5px;align-items:center}
+.lvmeter i{display:block;width:100%;height:10px;border-radius:9px;background:#ffffff18}
+.lvmeter div.on i{background:linear-gradient(90deg,var(--mint),var(--lemon))}
+.lvmeter span{font-size:11.5px;font-weight:800;color:var(--dim)}
+.lvmeter div.on span{color:var(--text)}
+.tcardx .av{width:64px;height:64px;margin-bottom:8px}
+.onb .dots{margin-bottom:18px}
+
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:#120b26f2;border-top:1px solid var(--line);backdrop-filter:blur(10px);display:flex;justify-content:center;z-index:5}
 nav .in{display:flex;max-width:560px;width:100%}
@@ -525,7 +551,7 @@ nav button.on{color:var(--lemon)}
 </div>
 
 <div class="wrap hidden" id="teacher">
-  <div class="topbar"><div class="brand"><b>Chiclete</b> <i>English</i></div><button class="menuBtn" data-menu aria-label="Menu">☰</button></div>
+  <div class="topbar"><span class="logoSlot"></span><button class="menuBtn" data-menu aria-label="Menu">☰</button></div>
   <div class="thead hidden" id="chatHead"><div class="av av-live" id="chAv"></div><div><div class="brand" style="font-size:22px" id="chName"></div><div class="meta" id="chTag"></div></div></div>
 
   <div id="lSetup">
@@ -611,7 +637,7 @@ nav button.on{color:var(--lemon)}
 <div class="shade hidden" id="profShade"><div class="sheet prof" id="prof"></div></div>
 <div class="onb hidden" id="onb"><div class="in" id="onbIn"></div></div>
 <div class="drawer hidden" id="drawer"><div class="panel">
-  <div class="brand" style="margin-bottom:14px"><b>Chiclete</b> <i>English</i></div>
+  <div style="margin-bottom:14px"><span class="logoSlot"></span></div>
   <button class="item" data-go="teacher"><span class="ic">🧑‍🏫</span><span>Professores<small>Conversa, aulas e missões</small></span></button>
   <button class="item" data-go="home"><span class="ic">🎵</span><span>Músicas<small>Trilha com 13 músicas em 4 níveis</small></span></button>
   <button class="item" data-go="cards"><span class="ic">🃏</span><span>Meus cards<small>Revise suas palavras</small></span></button>
@@ -996,6 +1022,7 @@ function silentWav(){
   return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
 }
 function unlockAudio(){
+  try{unlockTTS()}catch(e){}
   try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
   try{if(!unlockEl){unlockEl=new Audio(silentWav());unlockEl.loop=true;unlockEl.setAttribute('playsinline','')}
       const p=unlockEl.play();p&&p.catch(()=>{})}catch(e){}
@@ -1381,6 +1408,10 @@ function askCode(){return new Promise(res=>{
   s.querySelector('#codeOk').onclick=()=>done(i.value.trim());i.onkeydown=e=>{if(e.key==='Enter')done(i.value.trim())};
   s.querySelector('#codeNo').onclick=()=>done('');
 })}
+async function serverTTS(text,teacher,slow){
+  const r=await fetch('/api/tts',{method:'POST',headers:{'content-type':'application/json','x-access-code':accessCode()},body:JSON.stringify({text,teacher,slow})});
+  if(!r.ok)throw new Error('tts '+r.status);return await r.blob();
+}
 async function serverTranscribe(blob,lang){
   const fd=new FormData();const ext=/mp4|m4a/.test(blob.type)?'m4a':/ogg/.test(blob.type)?'ogg':'webm';
   fd.append('file',blob,'fala.'+ext);fd.append('lang',lang);
@@ -1487,45 +1518,81 @@ const QUIZ=[
  ['"She suggested ___ earlier."',['to leave','leaving','leave'],1]
 ];
 let OB={step:0,name:'',goal:'',q:0,score:0,picked:null,tk:null};
+const LV_INFO=[
+ ['Iniciante','🌱','Você está começando. Vamos com frases curtas, bastante português pra te guiar e um passo de cada vez.'],
+ ['Básico','🌿','Você já entende o básico. Vamos treinar frases do dia a dia e perder a vergonha de falar.'],
+ ['Intermediário','🌳','Você já se vira! Vamos deixar sua conversa mais natural, com mais inglês.'],
+ ['Avançado','🚀','Mandou muito! Conversas quase todas em inglês, com expressões de nativo.']
+];
+function logoSVG(h=34){return `<svg class="logo" height="${h}" viewBox="0 0 250 48" xmlns="http://www.w3.org/2000/svg" aria-label="Chiclete English">
+  <circle cx="22" cy="24" r="19" fill="#ff5fa2"/><circle cx="22" cy="24" r="19" fill="url(#lg)" opacity=".35"/>
+  <ellipse cx="15" cy="16" rx="6" ry="4" fill="#fff" opacity=".55" transform="rotate(-25 15 16)"/>
+  <path d="M30 38 Q34 46 41 45 Q35 41 35 35Z" fill="#ff5fa2"/>
+  <path d="M15 27 q3-5 7 0 q4 5 7 0" stroke="#160f2b" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <defs><radialGradient id="lg" cx=".3" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b64cff"/></radialGradient></defs>
+  <text x="48" y="31" font-family="Fredoka,Nunito,sans-serif" font-weight="700" font-size="24" fill="#ff5fa2">Chiclete</text>
+  <text x="150" y="31" font-family="Fredoka,Nunito,sans-serif" font-weight="700" font-size="24" fill="#ffe066">English</text></svg>`}
 function onbRender(){
-  if(!OB.tk)OB.tk=TK;const S=OB.step;
-  let html=`<div class="dots">${[0,1,2,3].map(i=>`<i class="${i<=S?'on':''}"></i>`).join('')}</div>`;
+  if(!OB.tk)OB.tk=TK;const S=OB.step;const total=5;
+  let html=S>0?`<div class="dots">${[1,2,3,4,5].map(i=>`<i class="${i<=S?'on':''}"></i>`).join('')}</div>`:'';
   if(S===0){
-    html+=`<div class="brand" style="margin-bottom:18px"><b>Chiclete</b> <i>English</i></div><h2>Oi! Como você quer ser chamado?</h2>
-      <p class="sub">Seus professores vão te chamar assim.</p>
-      <input class="inp2" id="obName" placeholder="Seu nome" value="${esc(OB.name)}" style="font-size:18px;padding:14px">
-      <div class="row" style="justify-content:flex-start;margin-top:18px"><button class="btn main" id="obNext">Continuar</button><button class="btn" id="obSkip">Pular tudo</button></div>`;
+    html+=`<div class="welcome2">${logoSVG(40)}
+      <div class="wduo">${avHTML('lua','happy','av-live')}${avHTML('anthony','happy','av-live')}</div>
+      <h1 class="wtitle">Aprenda inglês conversando, no seu ritmo.</h1>
+      <p class="wsub">Seus professores Lua e Anthony te guiam em português, passo a passo, com músicas que grudam na cabeça.</p>
+      <ul class="wlist"><li>🗣️ Converse falando ou tocando nas respostas</li><li>📘 Aulas curtas de 5 minutos</li><li>🎵 Músicas originais pra fixar</li></ul>
+      <button class="btn main bigbtn" id="obGo" style="width:100%">Vamos começar 🍬</button>
+      <div class="meta" style="text-align:center;margin-top:10px">Leva só 2 minutos</div>
+      <button class="linkbtn" id="obSkip">Já conheço o app, pular</button></div>`;
   }else if(S===1){
-    html+=`<h2>Pra que você quer inglês?</h2><p class="sub">A gente adapta as conversas pro seu objetivo.</p>`+
-      OBJ.map(o=>`<button class="opt2 ${OB.goal===o?'on':''}" data-o="${esc(o)}">${o}</button>`).join('')+
-      `<div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn main" id="obNext" ${OB.goal?'':'disabled'}>Continuar</button></div>`;
+    html+=`<h2>Oi! Como você quer ser chamado?</h2>
+      <p class="sub">Seus professores vão te chamar assim.</p>
+      <input class="inp2" id="obName" placeholder="Seu nome" value="${esc(OB.name)}" style="font-size:20px;padding:16px" autocomplete="given-name">
+      <button class="btn main bigbtn" id="obNext" style="width:100%;margin-top:18px">Continuar</button>`;
   }else if(S===2){
+    html+=`<h2>Pra que você quer aprender inglês?</h2><p class="sub">Escolha uma opção. Os professores vão usar exemplos do seu objetivo.</p>`+
+      OBJ.map(o=>`<button class="opt2 ${OB.goal===o?'on':''}" data-o="${esc(o)}">${o}</button>`).join('')+
+      `<button class="btn main bigbtn" id="obNext" style="width:100%;margin-top:10px" ${OB.goal?'':'disabled'}>Continuar</button>`;
+  }else if(S===3){
+    html+=`<div class="lvintro"><div class="lvicon">📏</div><h2>Agora, um teste rápido de nível</h2>
+      <p class="big2">São <b>7 perguntas</b> pra <b>medir o seu nível de inglês</b>. Com isso, a gente começa as aulas no ponto certo pra você.</p>
+      <ul class="wlist"><li>✅ Não é prova e não vale nota</li><li>🤷 Se não souber, toque em <b>"Não sei"</b></li><li>⏱️ Leva menos de 1 minuto</li></ul>
+      <button class="btn main bigbtn" id="obNext" style="width:100%">Começar o teste</button></div>`;
+  }else if(S===4){
     const [q,opts,ans]=QUIZ[OB.q];
-    html+=`<h2>Teste rápido de nível</h2><p class="sub">7 perguntas. Sem pressão: se não souber, chuta!</p>
-      <div class="qnum">Pergunta ${OB.q+1} de ${QUIZ.length}</div><div style="font-family:Fredoka,sans-serif;font-size:21px;margin-bottom:12px">${esc(q)}</div>`+
+    html+=`<div class="qhead">📏 Medindo seu nível de inglês</div>
+      <div class="qbar"><i style="width:${Math.round(OB.q/QUIZ.length*100)}%"></i></div>
+      <div class="qnum">Pergunta ${OB.q+1} de ${QUIZ.length} · complete a frase</div>
+      <div class="qtext">${esc(q)}</div>`+
       opts.map((o,i)=>`<button class="opt2 ${OB.picked===null?'':i===ans?'ok':i===OB.picked?'bad':''}" data-i="${i}">${esc(o)}</button>`).join('')+
-      `<button class="btn" id="obIdk" style="margin-top:4px">Não sei</button>`;
+      `<button class="btn bigbtn" id="obIdk" style="width:100%;margin-top:4px">🤷 Não sei</button>`;
   }else{
-    const lv=OB.score<=2?0:OB.score<=4?1:OB.score<=5?2:3;OB.lv=lv;
-    html+=`<h2>Seu nível: ${L_LEVELS[lv][0]} 🎉</h2><p class="sub">Você acertou ${OB.score} de ${QUIZ.length}. Dá pra mudar o nível quando quiser.</p>
-      <h2 style="font-size:20px;margin-top:18px">Com quem você quer começar?</h2><div class="tpick" id="obPick" style="margin-top:10px"></div>
-      <button class="btn main" id="obDone" style="width:100%;margin-top:6px">▶ Começar minha primeira aula</button>`;
+    const lv=OB.score<=2?0:OB.score<=4?1:OB.score<=5?2:3;OB.lv=lv;const I=LV_INFO[lv];
+    html+=`<div class="qhead">📏 Resultado do teste de nível</div>
+      <div class="lvres"><div class="lvbig">${I[1]}</div><h2>Seu nível: ${I[0]}</h2>
+      <div class="lvmeter">${LV_INFO.map((x,i)=>`<div class="${i<=lv?'on':''}"><i></i><span>${x[0]}</span></div>`).join('')}</div>
+      <p class="big2">${I[2]}</p><div class="meta">Você acertou ${OB.score} de ${QUIZ.length}. Dá pra mudar o nível quando quiser.</div></div>
+      <h2 style="font-size:21px;margin-top:20px">Escolha seu professor</h2><p class="sub" style="margin-bottom:4px">Toque pra ouvir a voz de cada um.</p><div class="tpick" id="obPick" style="margin-top:10px"></div>
+      <button class="btn main bigbtn" id="obDone" style="width:100%;margin-top:8px">▶ Começar minha primeira aula</button>`;
   }
-  $('onbIn').innerHTML=html;
-  if(S===0){$('obName').focus();$('obNext').onclick=()=>{OB.name=$('obName').value.trim().slice(0,40);OB.step=1;onbRender()};
-    $('obName').onkeydown=e=>{if(e.key==='Enter')$('obNext').click()};$('obSkip').onclick=()=>onbFinish(true)}
-  if(S===1){$('onbIn').querySelectorAll('.opt2').forEach(b=>b.onclick=()=>{OB.goal=b.dataset.o;onbRender()});$('obNext').onclick=()=>{OB.step=2;onbRender()}}
-  if(S===2){
+  $('onbIn').innerHTML=html;window.scrollTo(0,0);$('onb').scrollTop=0;
+  if(S===0){$('obGo').onclick=()=>{unlockAudio();OB.step=1;onbRender()};$('obSkip').onclick=()=>onbFinish(true)}
+  if(S===1){setTimeout(()=>{const el=$('obName');if(el)el.focus()},100);$('obNext').onclick=()=>{OB.name=$('obName').value.trim().slice(0,40);OB.step=2;onbRender()};
+    $('obName').onkeydown=e=>{if(e.key==='Enter')$('obNext').click()}}
+  if(S===2){$('onbIn').querySelectorAll('.opt2').forEach(b=>b.onclick=()=>{OB.goal=b.dataset.o;onbRender()});$('obNext').onclick=()=>{OB.step=3;onbRender()}}
+  if(S===3){$('obNext').onclick=()=>{OB.step=4;onbRender()}}
+  if(S===4){
     const answer=i=>{if(OB.picked!==null)return;OB.picked=i;if(i===QUIZ[OB.q][2])OB.score++;onbRender();
-      setTimeout(()=>{OB.picked=null;OB.q++;if(OB.q>=QUIZ.length)OB.step=3;onbRender()},i===-1?50:650)};
+      setTimeout(()=>{OB.picked=null;OB.q++;if(OB.q>=QUIZ.length)OB.step=5;onbRender()},i===-1?50:700)};
     $('onbIn').querySelectorAll('.opt2').forEach(b=>b.onclick=()=>answer(+b.dataset.i));$('obIdk').onclick=()=>answer(-1);
   }
-  if(S===3){
-    $('obPick').innerHTML=Object.entries(TEACHERS).map(([k,t])=>`<button class="tcardx ${k===OB.tk?'on':''}" data-k="${k}" style="--tc:${t.color};--tg:${t.grad}"><span class="chk">✓</span><div class="avatar">${t.av}</div><b>${t.name}</b><small>${t.tag}</small></button>`).join('');
-    $('obPick').querySelectorAll('button').forEach(b=>b.onclick=()=>{OB.tk=b.dataset.k;unlockAudio();const t=TEACHERS[OB.tk];say(t.hi,0.95,null,t.g==='m'?(voiceM||voice):(voiceF||voice),t.pitch);onbRender()});
+  if(S===5){
+    $('obPick').innerHTML=Object.entries(TEACHERS).map(([k,t])=>`<button class="tcardx ${k===OB.tk?'on':''}" data-k="${k}" style="--tc:${t.color};--tg:${t.tg}"><span class="chk">✓</span>${avHTML(k,k===OB.tk?'proud':'happy','tav')}<b>${t.name}</b><small>${t.tag}</small></button>`).join('');
+    $('obPick').querySelectorAll('button').forEach(b=>b.onclick=()=>{OB.tk=b.dataset.k;unlockAudio();const t=TEACHERS[OB.tk];const prev=TK;TK=OB.tk;teacherSpeak(t.hi,0.95,null);TK=prev;onbRender()});
     $('obDone').onclick=()=>onbFinish(false);
   }
 }
+
 function onbFinish(skip){
   if(!skip){
     if(OB.name)MEM.name=OB.name;
@@ -1741,7 +1808,7 @@ function renderHero(){
   $('hero').querySelector('.av').onclick=()=>startGuided(TK);$('heroProf').onclick=openProfile;
   $('heroLesson').onclick=()=>startGuided(TK);
   $('heroGo').onclick=()=>startChat(TK);
-  $('hero').querySelectorAll('.switch button').forEach(bt=>bt.onclick=()=>{if(bt.dataset.k===TK)return startGuided(TK);TK=bt.dataset.k;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}applyTheme();renderPick();renderHero();updateToday();unlockAudio();say(TT().hi,0.95,null,tVoice(),TT().pitch)});
+  $('hero').querySelectorAll('.switch button').forEach(bt=>bt.onclick=()=>{if(bt.dataset.k===TK)return startGuided(TK);TK=bt.dataset.k;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}applyTheme();renderPick();renderHero();updateToday();unlockAudio();teacherSpeak(TT().hi,0.95)});
 }
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='profShade')$('profShade').classList.add('hidden')});
 
@@ -1756,7 +1823,7 @@ function renderGCard(){
   c.innerHTML=`<div class="gt">📘 Aula ${LU.g.l+1}: ${g.e} ${esc(g.t)}<span>${LU.done?'concluída 🎉':'passo '+(s+1)+' de 5'}</span></div>
     <div class="gsteps">${g.steps.map((x,i)=>`<i class="${LU.done||i<LU.g.s?'done':i===LU.g.s?'cur':''}"></i>`).join('')}</div>
     ${LU.done?'<div class="gnow">Você completou todos os passos! 🏆</div>':`<div class="gnow">Agora: ${esc(st.t)}</div><div class="gphrase" id="gPhrase">🎯 ${esc(st.phrase)} <small>${esc(st.pt)}</small></div>`}`;
-  const gp=$('gPhrase');if(gp)gp.onclick=()=>say(st.phrase.replace('…',''),0.8,null,tVoice(),TT().pitch);
+  const gp=$('gPhrase');if(gp)gp.onclick=()=>teacherSpeak(st.phrase.replace('…',''),0.8);
 }
 function guidedIntro(){
   const g=GUIDED[LU.g.l],s=g.steps[0],n=MEM.name;
@@ -1845,7 +1912,7 @@ function openProfile(){
     <div class="sec"><b>Vocês dois</b>💞 ${b.name} · ${b.x} pontos de amizade${MEM.facts.length?`<br>${t.name} lembra que: ${esc(MEM.facts.slice(-4).join(' · '))}`:''}</div>
     <div class="row" style="margin-top:16px"><button class="btn" id="profHi">🔊 Ouvir ${t.name}</button><button class="btn main" id="profClose">Fechar</button></div>`;
   $('profShade').classList.remove('hidden');
-  $('profHi').onclick=()=>{unlockAudio();say(t.hi,0.95,null,tVoice(),t.pitch)};
+  $('profHi').onclick=()=>{unlockAudio();teacherSpeak(t.hi,0.95)};
   $('profClose').onclick=()=>$('profShade').classList.add('hidden');
 }
 
@@ -2003,7 +2070,7 @@ function lRender(d,p){
    ((p.en||p.msg)&&d._final?`<span class="bubtools"><button data-a="say">🔊 Ouvir</button><button data-a="slow">🐢 Devagar</button></span>`:'');
   const mb=d.querySelector('.more');if(mb)mb.onclick=e=>{e.stopPropagation();d._more=true;lRender(d,p)};
   d.querySelectorAll('.bubtools button').forEach(b=>b.onclick=e=>{e.stopPropagation();speakP(p,b.dataset.a==='slow'?0.62:lRate())});
-  d.querySelectorAll('.enx').forEach(x=>x.onclick=e=>{e.stopPropagation();say(x.textContent,0.8,null,tVoice(),TT().pitch)});
+  d.querySelectorAll('.enx').forEach(x=>x.onclick=e=>{e.stopPropagation();teacherSpeak(x.textContent,0.8)});
   if(p.method&&d._final&&!d._rated&&!LU.simple){
     const k=lMethodKey(p.method);
     if(k){const f=document.createElement('span');f.className='rateq';f.innerHTML=`<em>${esc(k)}</em><button data-v="1">👍 Entendi</button><button data-v="0">🤔 Explica de outro jeito</button>`;
@@ -2013,7 +2080,30 @@ function lRender(d,p){
   }
   d._p=p;d.onclick=null;
 }
-function speakP(p,rate,onend){if(p.msg)sayMixed(p.msg,rate,onend,tVoice(),TT().pitch,TT().g);else if(p.en)say(p.en,rate,onend,tVoice(),TT().pitch);else onend&&onend()}
+/* ---------- voz neural humanizada (servidor), com a voz do celular como reserva ---------- */
+let TTS_ON=false;const TTS_CACHE=new Map();let TTSAUD=null;
+try{if(typeof serverTTS==='function'&&location.protocol.startsWith('http'))fetch('/api/tts').then(r=>r.ok?r.json():{}).then(j=>{TTS_ON=!!(j&&j.enabled)}).catch(()=>{})}catch(e){}
+function ttsAudio(){if(!TTSAUD){TTSAUD=new Audio();TTSAUD.setAttribute('playsinline','');TTSAUD.preload='auto'}return TTSAUD}
+function unlockTTS(){try{const a=ttsAudio();if(a._unlocked)return;a._unlocked=true;a.src=silentWav();const p=a.play();p&&p.then(()=>a.pause()).catch(()=>{})}catch(e){}}
+function stopTeacherAudio(){try{const a=ttsAudio();a.pause();a.onended=null}catch(e){}document.body.classList.remove('speaking')}
+async function teacherSpeak(text,rate,onend){
+  const clean=String(text||'').replace(/\*\*/g,'');
+  const fallback=()=>{if(/\*\*/.test(text))sayMixed(text,rate,onend,tVoice(),TT().pitch,TT().g);else say(clean,rate,onend,tVoice(),TT().pitch)};
+  if(!TTS_ON||typeof serverTTS!=='function'){fallback();return}
+  try{
+    try{speechSynthesis.cancel()}catch(e){}
+    const slow=rate<0.75,key=TK+'|'+(slow?'s':'n')+'|'+clean;
+    let url=TTS_CACHE.get(key);
+    if(!url){url=URL.createObjectURL(await serverTTS(clean,TK,slow));TTS_CACHE.set(key,url);if(TTS_CACHE.size>60){const k=TTS_CACHE.keys().next().value;URL.revokeObjectURL(TTS_CACHE.get(k));TTS_CACHE.delete(k)}}
+    const a=ttsAudio();a.pause();a.src=url;a.playbackRate=slow?0.85:1;
+    a.onplay=()=>document.body.classList.add('speaking');
+    a.onended=()=>{document.body.classList.remove('speaking');onend&&onend()};
+    a.onerror=()=>{document.body.classList.remove('speaking');fallback()};
+    await a.play();
+  }catch(e){document.body.classList.remove('speaking');fallback()}
+}
+
+function speakP(p,rate,onend){const t=p.msg||p.en;if(!t){onend&&onend();return}teacherSpeak(t,rate,onend)}
 function learnWord(nw,ctx){
   if(!nw||LU.words.includes(nw))return;
   const m=nw.match(/^(.+?)\s*=\s*(.+)$/);if(!m)return;
@@ -2197,7 +2287,7 @@ function startSR(SR){
   }catch(e){recOk=false;recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}
 }
 function lListen(){
-  try{speechSynthesis.cancel()}catch(e){}document.body.classList.remove('speaking');
+  try{speechSynthesis.cancel()}catch(e){}try{stopTeacherAudio()}catch(e){}document.body.classList.remove('speaking');
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const canRec=typeof serverTranscribe==='function'&&STT_ON&&!!window.MediaRecorder&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
   // iPhone: gravação + transcrição é o caminho mais estável. Android: reconhecimento do próprio Chrome.
@@ -2342,6 +2432,7 @@ $('lSimple').onclick=()=>{LU.simple=!LU.simple;LU.simpleForced=LU.simple;$('lSim
 $('lPt').onclick=()=>{LU.pt=!LU.pt;$('lPt').textContent='🇧🇷 Tradução: '+(LU.pt?'sim':'não');$('lChat').querySelectorAll('.bub.them').forEach(d=>d._p&&lRender(d,d._p))};
 $('lVoiceMode').onclick=()=>{LU.voice=!LU.voice;$('lVoiceMode').textContent='🎧 Modo voz: '+(LU.voice?'sim':'não');$('lVoiceMode').classList.toggle('on',LU.voice);
   if(LU.voice){toast('Modo voz: '+TT().name+' fala e o microfone abre em seguida');if(!LU.busy)lListen()}};
+document.querySelectorAll('.logoSlot').forEach(e=>e.innerHTML=logoSVG(32));
 if(D.lv!=null)LU.lv=D.lv;
 renderHome();show('teacher');initTeacher();rollDay();updateToday();
 if(!D.onboarded){$('onb').classList.remove('hidden');onbRender()}

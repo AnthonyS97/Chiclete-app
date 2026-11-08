@@ -456,6 +456,18 @@ body.hasTabs{padding-bottom:96px}
 .hero .speech{min-height:64px}
 
 .toast{bottom:auto!important;top:calc(14px + env(safe-area-inset-top));z-index:60}
+.micico{width:1em;height:1em;display:block;flex:none}
+.bigmic{color:#160f2b}
+.bigmic .micico{width:32px;height:32px}
+.micbig{color:#160f2b}
+.micbig .micico{width:52px;height:52px}
+.micbig.off{color:var(--text)}
+.waves{display:flex;align-items:center;justify-content:center;gap:5px;height:44px;margin:4px 0 2px}
+.waves i{display:block;width:6px;height:40px;border-radius:9px;background:var(--tc,var(--pink));transform-origin:center;transform:scaleY(.25);animation:wv 1s ease-in-out infinite}
+.waves i:nth-child(2){animation-delay:.1s}.waves i:nth-child(3){animation-delay:.2s}.waves i:nth-child(4){animation-delay:.3s}.waves i:nth-child(5){animation-delay:.4s}.waves i:nth-child(6){animation-delay:.3s}.waves i:nth-child(7){animation-delay:.2s}.waves i:nth-child(8){animation-delay:.1s}
+.waves.real i{animation:none;transition:transform .1s}
+@keyframes wv{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(1)}}
+
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:#120b26f2;border-top:1px solid var(--line);backdrop-filter:blur(10px);display:flex;justify-content:center;z-index:5}
 nav .in{display:flex;max-width:560px;width:100%}
@@ -644,7 +656,7 @@ nav button.on{color:var(--lemon)}
     </div>
     <div class="dock" id="dock">
       <button class="dockside" id="kbBtn" aria-label="Escrever">⌨️<span>Escrever</span></button>
-      <button class="bigmic" id="lMic" aria-label="Toque e fale">🎤<span>Toque e fale</span></button>
+      <button class="bigmic" id="lMic" aria-label="Toque e fale"><svg class="micico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="2.5" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11.5a7 7 0 0 0 14 0"/><path d="M12 18.5v3"/></svg><span>Toque e fale</span></button>
       <button class="dockside" id="helpBtn" aria-label="Ajuda">🆘<span>Ajuda</span></button>
     </div>
     <div class="meta hidden" id="lMicHint" style="text-align:center;margin-top:8px">Toque no 🎤 do teclado do celular e fale. Depois toque em ➤.</div>
@@ -1744,7 +1756,9 @@ let TK='lua';try{TK=localStorage.getItem('chiclete-teacher')||'lua'}catch(e){}
 if(!TEACHERS[TK])TK='lua';
 const TT=()=>TEACHERS[TK];
 const tVoice=()=>TT().g==='m'?(voiceM||voice):(voiceF||voice);
-function luaPersona(){return TT().persona}
+function luaPersona(){return TT().persona+`
+Be truly human in how you talk: you have moods, opinions and a life (today you are ${todayStatus()}). Be genuinely curious about the student's life and remember details. Share tiny anecdotes of your own when it fits, laugh when something is funny ("haha", "kkkk"), and use natural Brazilian fillers now and then ("tipo", "olha", "ah!", "hmm"). Mirror the student's energy: short answers get short replies, excitement gets excitement, and if they seem tired, sad or insecure, be kind and reassuring first. Never sound scripted.
+If the student sincerely asks whether you are a real person or an AI, be honest and kind: say you're a virtual AI teacher created for Chiclete English, then keep the conversation going warmly.`}
 /* ---------- avatares ilustrados (personagens originais) ---------- */
 function mouthSVG(mood){
   const c='#5a1d2b';
@@ -2205,7 +2219,7 @@ function applyMeta(p){
 function lSugs(p){
   const o=(p&&p.opts?p.opts.split('|').map(s=>s.trim()).filter(Boolean).slice(0,3):[]);
   const parts=o.map(s=>{const i=s.indexOf('=');return i>0?[s.slice(0,i).trim(),s.slice(i+1).trim()]:[s,'']});
-  $('lSugs').innerHTML=parts.length?`<div class="sughead">👉 Sua vez! Toque numa resposta, fale no 🎤 ou escreva</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
+  $('lSugs').innerHTML=parts.length?`<div class="sughead">👉 Sua vez! Toque numa resposta ou no botão Falar</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
   if(parts.length)setTimeout(()=>{const dk=$('dock');if(dk&&!$('lChatWrap').classList.contains('hidden'))window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'})},120);
   $('lSugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const en=parts[+b.dataset.i][0];
     if(/…|\.\.\./.test(en)){const base=en.replace(/\s*(…|\.\.\.)\s*$/,' ');$('lInput').value=base+(MEM.name&&/name is/i.test(base)?MEM.name:'');showKb();toast('Complete a frase e toque em ➤');return}
@@ -2254,6 +2268,7 @@ function micSheet(){
 }
 function closeMic(){try{rec&&rec.abort&&rec.abort()}catch(e){}try{MR.rec&&MR.rec.state!=='inactive'&&MR.rec.stop()}catch(e){}
   if(MR.stream){MR.stream.getTracks().forEach(t=>t.stop());MR.stream=null}MR.cancel=true;const s=$('micSheet');if(s)s.classList.add('hidden');$('lMic').classList.remove('on')}
+const MIC_SVG='<svg class="micico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="2.5" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11.5a7 7 0 0 0 14 0"/><path d="M12 18.5v3"/></svg>';
 const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 let STT_ON=false;
 try{if(typeof serverTranscribe==='function'&&location.protocol.startsWith('http'))fetch('/api/transcribe').then(r=>r.ok?r.json():{}).then(j=>{STT_ON=!!(j&&j.enabled)}).catch(()=>{})}catch(e){}
@@ -2262,9 +2277,9 @@ function showKb(){$('composer').classList.remove('hidden');setTimeout(()=>{$('lI
 function micView(state,text){
   const s=micSheet();clearTimeout(micTimer);
   if(state==='guide'){
-    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🎤</div><h3>Vamos falar pelo teclado</h3>
+    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">${MIC_SVG}</div><h3>Vamos falar pelo teclado</h3>
       <p class="big2">Aqui o microfone do app não foi liberado. É fácil usar o do teclado:</p>
-      <ol class="micsteps"><li>Toque no botão <b>Abrir teclado</b></li><li>No teclado, toque no <b>🎤</b> (fica embaixo)</li><li>Fale e depois toque em <b>➤ Enviar</b></li></ol>
+      <ol class="micsteps"><li>Toque no botão <b>Abrir teclado</b></li><li>No teclado, toque no <b>microfone</b> (fica embaixo)</li><li>Fale e depois toque em <b>➤ Enviar</b></li></ol>
       <p class="meta" style="font-size:14px">Dica: se o celular perguntar, toque em <b>Permitir</b> o microfone. Funciona melhor abrindo o app pelo Safari (iPhone) ou Chrome (Android).</p>
       <div class="row"><button class="btn main bigbtn" id="micKb">⌨️ Abrir teclado</button><button class="btn bigbtn" id="micX">Fechar</button></div></div>`;
     $('micKb').onclick=()=>{closeMic();showKb()};$('micX').onclick=closeMic;return;
@@ -2278,7 +2293,7 @@ function micView(state,text){
   }
   const head={listen:'Pode falar agora',rec:'Pode falar agora',wait:'Entendendo o que você disse…',done:'Você disse:'}[state]||'';
   const sub={listen:'Quando terminar, é só parar de falar',rec:'Quando terminar, é só parar de falar',wait:'Só um instante',done:'Enviando…'}[state]||'';
-  s.innerHTML=`<div class="sheet micbox"><div class="micbig ${state==='listen'||state==='rec'?'live':state==='wait'?'wait':''}">${state==='wait'?'⏳':'🎤'}</div>
+  s.innerHTML=`<div class="sheet micbox"><div class="micbig ${state==='listen'||state==='rec'?'live':state==='wait'?'wait':''}">${state==='wait'?'⏳':MIC_SVG}</div>${state==='listen'||state==='rec'?'<div class="waves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>':''}
     <h3 class="micHead">${head}</h3><div class="meta big2">${sub}</div>
     <div class="mictext">${text?esc(text):(state==='done'?'<span class="meta">Não consegui ouvir. Tente de novo, mais perto do celular.</span>':'<span class="meta">Sua fala aparece aqui</span>')}</div>
     <div class="row">${state==='listen'||state==='rec'?'<button class="btn main bigbtn" id="micStop">✅ Terminei</button>':''}
@@ -2321,6 +2336,7 @@ function recordAndTranscribe(){
       const AC=window.AudioContext||window.webkitAudioContext;MR.ac=new AC();const src=MR.ac.createMediaStreamSource(stream);const an=MR.ac.createAnalyser();an.fftSize=1024;src.connect(an);
       const buf=new Uint8Array(an.fftSize);let spoke=false,quietSince=0;const t0=Date.now();
       const tick=()=>{if(!MR.rec||MR.rec.state!=='recording')return;an.getByteTimeDomainData(buf);let s=0;for(const v of buf){const x=(v-128)/128;s+=x*x}const rms=Math.sqrt(s/buf.length);
+        const wv=document.querySelector('#micSheet .waves');if(wv){wv.classList.add('real');wv.querySelectorAll('i').forEach((b,k)=>{b.style.transform='scaleY('+Math.min(1,0.15+rms*6*(0.6+Math.abs(Math.sin(Date.now()/120+k))*0.8)).toFixed(2)+')'})}
         const now=Date.now();if(rms>0.04){spoke=true;quietSince=0}else if(spoke){quietSince=quietSince||now;if(now-quietSince>1500){try{MR.rec.stop()}catch(e){}return}}
         if(!spoke&&now-t0>8000){try{MR.rec.stop()}catch(e){}return}
         setTimeout(tick,100)};

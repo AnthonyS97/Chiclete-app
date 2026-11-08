@@ -62,6 +62,7 @@ Peça as mudanças ao Claude, baixe o arquivo novo e, no GitHub, abra o arquivo 
 | `ACCESS_CODE` | vazio | Se preenchido, exige código para usar os professores (teste fechado) |
 | `MODEL_FAST` | `claude-haiku-5-5` | Modelo do modo ⚡ Rápida (barato) |
 | `MODEL_MAX` | `claude-sonnet-5-5` | Modelo do modo 🎓 Máxima (~20× mais caro) |
+| `OPENAI_API_KEY` | vazio | Opcional. Liga a transcrição da fala (🎤) nos celulares cujo navegador não reconhece voz sozinho, como alguns iPhones. Custa centavos por minuto. Sem ela, o app ensina o aluno a usar o ditado do teclado. |
 
 Depois de mudar uma variável, vá em **Deployments → ⋯ → Redeploy**.
 

@@ -339,6 +339,18 @@ body.speaking .av-live .m-closed{animation:talk2 .22s infinite alternate}
 .prof ul{margin:0;padding-left:18px;line-height:1.6}
 .bondup{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:50;background:#fff;color:#1d1433;border-radius:22px;padding:18px 22px;text-align:center;font-weight:800;box-shadow:0 20px 60px #000a;animation:up .3s ease-out}
 
+.bub b.enx{color:var(--tc,var(--lemon));font-weight:800;cursor:pointer;border-bottom:1px dashed currentColor}
+.micbox{text-align:center}
+.micbox h3{font-size:20px;margin:6px 0 10px}
+.micbig{width:96px;height:96px;border-radius:50%;margin:4px auto 8px;display:flex;align-items:center;justify-content:center;font-size:42px;background:var(--tc,var(--pink));box-shadow:0 0 0 0 #ff5fa266}
+.micbig.live{animation:micpulse 1.2s infinite}.micbig.off{background:#ffffff18}
+@keyframes micpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tc,#ff5fa2) 60%,transparent)}100%{box-shadow:0 0 0 26px transparent}}
+.mictext{min-height:52px;margin:12px 0;padding:12px;border-radius:14px;background:#ffffff0c;font-size:18px;font-weight:700}
+.miclang{display:flex;gap:6px;justify-content:center}
+.miclang button{padding:7px 11px;border-radius:99px;background:#ffffff10;border:1px solid var(--line);font-weight:800;font-size:13px}
+.miclang button.on{background:var(--lemon);color:#1a0f33;border-color:var(--lemon)}
+.micsteps{text-align:left;line-height:1.7;margin:8px 0 10px;padding-left:22px;font-size:15px}
+
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:#120b26f2;border-top:1px solid var(--line);backdrop-filter:blur(10px);display:flex;justify-content:center;z-index:5}
 nav .in{display:flex;max-width:560px;width:100%}
@@ -512,6 +524,7 @@ nav button.on{color:var(--lemon)}
       <button id="lVoiceMode">🎧 Modo voz: não</button>
       <button id="lPt">🇧🇷 Tradução: sim</button>
       <button id="lSimple">🧘 Modo simples: sim</button>
+      <button id="lBi">🇧🇷🇺🇸 Bilíngue: sim</button>
     </div>
     <div class="lchat" id="lChat"></div>
     <div class="sugs" id="lSugs"></div>
@@ -855,7 +868,14 @@ function rankVoices(pref){
     if(v.localService===false)s+=5;return s};
   return vs.sort((a,b)=>score(b)-score(a))[0]||null;
 }
+let voicePtF=null,voicePtM=null;
+function rankPt(pref){
+  const vs=speechSynthesis.getVoices().filter(v=>/^pt[-_]BR/i.test(v.lang));
+  const sc=v=>(/natural|neural|online|premium|enhanced|siri/i.test(v.name)?50:0)+(pref.test(v.name)?40:0)+(v.localService===false?5:0);
+  return vs.sort((a,b)=>sc(b)-sc(a))[0]||speechSynthesis.getVoices().find(v=>/^pt/i.test(v.lang))||null;
+}
 function pickVoice(){try{
+  voicePtF=rankPt(/Luciana|Francisca|Vit[oó]ria|Fernanda|Joana|Thalita|Google portugu[eê]s|Female/i);voicePtM=rankPt(/Daniel|Ant[oô]nio|Felipe|Fabio|Humberto|Donato|Male/i);
   voiceF=rankVoices(FEMALE);voiceM=rankVoices(MALE);
   if(voiceM&&FEMALE.test(voiceM.name)&&!MALE.test(voiceM.name))voiceM=null;
 }catch(e){}
@@ -870,6 +890,23 @@ try{
   voice=vs[0]||speechSynthesis.getVoices().find(v=>/^en/i.test(v.lang))||null;
 }catch(e){}}
 try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}catch(e){}
+function cleanSpeech(t){return String(t||'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,'').replace(/\s+/g,' ').trim()}
+function sayMixed(text,rate,onend,vEn,pitch,g){
+  try{
+    speechSynthesis.cancel();
+    const parts=String(text||'').split(/\*\*(.+?)\*\*/g).map((s,i)=>({s:cleanSpeech(s),en:i%2===1})).filter(x=>x.s&&/[a-zA-ZÀ-ú0-9]/.test(x.s));
+    if(!parts.length){onend&&onend();return}
+    const vPt=g==='m'?(voicePtM||voicePtF):(voicePtF||voicePtM);
+    parts.forEach((p,i)=>{
+      const u=new SpeechSynthesisUtterance(p.s);
+      if(p.en){u.lang='en-US';if(vEn)u.voice=vEn;u.rate=rate}else{u.lang='pt-BR';if(vPt)u.voice=vPt;u.rate=Math.min(1.05,rate+0.12)}
+      u.pitch=pitch||1;
+      if(i===0)u.onstart=()=>document.body.classList.add('speaking');
+      if(i===parts.length-1){u.onend=()=>{document.body.classList.remove('speaking');onend&&onend()};u.onerror=()=>document.body.classList.remove('speaking')}
+      speechSynthesis.speak(u);
+    });
+  }catch(e){}
+}
 function say(text,rate=0.95,onend,v,pitch){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';const vv=v||voice;if(vv)u.voice=vv;u.rate=rate;u.pitch=pitch||1.05;
   u.onstart=()=>document.body.classList.add('speaking');
   u.onend=()=>{document.body.classList.remove('speaking');onend&&onend()};u.onerror=()=>document.body.classList.remove('speaking');
@@ -1273,6 +1310,13 @@ function askCode(){return new Promise(res=>{
   s.querySelector('#codeOk').onclick=()=>done(i.value.trim());i.onkeydown=e=>{if(e.key==='Enter')done(i.value.trim())};
   s.querySelector('#codeNo').onclick=()=>done('');
 })}
+async function serverTranscribe(blob,lang){
+  const fd=new FormData();const ext=/mp4|m4a/.test(blob.type)?'m4a':/ogg/.test(blob.type)?'ogg':'webm';
+  fd.append('file',blob,'fala.'+ext);fd.append('lang',lang);
+  const r=await fetch('/api/transcribe',{method:'POST',headers:{'x-access-code':accessCode()},body:fd});
+  if(!r.ok)throw new Error('stt '+r.status);
+  const j=await r.json();return j.text||'';
+}
 function accessCode(){try{return localStorage.getItem('chiclete-code')||''}catch(e){return ''}}
 async function serverSample(messages,opts={}){
   if(typeof messages==='string')messages=[{role:'user',content:messages}];
@@ -1630,6 +1674,18 @@ document.addEventListener('click',e=>{if(e.target&&e.target.id==='profShade')$('
 /* ---------- apresentação imediata (sem esperar a IA) ---------- */
 function introFor(k){
   const n=MEM.name,known=!!n&&(MEM.sessions>1||(BOND[k]||0)>0);
+  if(LU.bi){
+    const okOpts=['I\'m good, thanks! = Tô bem, obrigado(a)!','I\'m great! And you? = Tô ótimo(a)! E você?','I\'m a little tired. = Tô um pouco cansado(a).'];
+    const nameOpts=['Hi! My name is … = Oi! Meu nome é …','Nice to meet you! = Prazer em te conhecer!','I\'m a beginner. = Eu sou iniciante.'];
+    if(k==='anthony'){
+      if(n&&known)return {msg:`E aí, ${n}! Bom te ver de novo. 👊 Aquecimento rápido: me responde em inglês, **how's it going?** Quer dizer "como vão as coisas?"`,opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
+      if(n)return {msg:`E aí, ${n}! Eu sou o Anthony, seu professor de inglês. 👊 Aqui é passo a passo, misturando português e inglês. Primeira jogada: **how are you?** Quer dizer "como você está?". Responde aí!`,opts:okOpts};
+      return {msg:"E aí! Eu sou o Anthony, seu professor de inglês. 👊 A gente vai passo a passo, misturando português e inglês. Primeiro passo: pra se apresentar, você diz **My name is…** Bora tentar? **What's your name?**",opts:nameOpts,name:true};
+    }
+    if(n&&known)return {msg:`Oi, ${n}! Que bom te ver de novo! 😊 Vamos treinar um pouquinho? Me responde em inglês: **How are you today?** Quer dizer "como você está hoje?"`,opts:okOpts};
+    if(n)return {msg:`Oi, ${n}! Eu sou a Lua, sua professora de inglês! 😊 Aqui a gente mistura português e inglês, no seu ritmo, sem vergonha nenhuma. Pra começar, uma fácil: **How are you today?** Quer dizer "como você está hoje?"`,opts:okOpts};
+    return {msg:"Oi! Eu sou a Lua, sua professora de inglês! 😊 Aqui a gente conversa misturando português e inglês, no seu ritmo. Pra começar: pra dizer seu nome em inglês, você fala **My name is…** Me conta, **what's your name?**",opts:nameOpts,name:true};
+  }
   if(k==='anthony'){
     if(n&&known)return {en:`Hey ${n}! Good to see you again. 👊 How's it going today?`,pt:`E aí, ${n}! Bom te ver de novo. Como estão as coisas hoje?`,
       opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
@@ -1647,13 +1703,13 @@ function introFor(k){
 }
 function localIntro(){
   const it=introFor(TK);
-  const raw=`EN: ${it.en}\nPT: ${it.pt}\nOPTS: ${it.opts.join(' | ')}`;
+  const raw=it.msg?`MSG: ${it.msg}\nOPTS: ${it.opts.join(' | ')}`:`EN: ${it.en}\nPT: ${it.pt}\nOPTS: ${it.opts.join(' | ')}`;
   LU.hist=[{role:'assistant',content:raw}];
   const row=document.createElement('div');row.className='mrow';row.innerHTML=avHTML(TK,'happy');
   const d=document.createElement('div');d.className='bub them';row.appendChild(d);$('lChat').appendChild(row);
   const p=lParse(raw);d._final=true;lRender(d,p);lSugs(p);setMood('happy');
-  $('lInput').placeholder=it.name?'Ou escreva: My name is …':'Ou escreva sua resposta…';
-  say(it.en,lRate(),()=>{if(LU.voice&&!LU.busy)lListen()},tVoice(),TT().pitch);
+  $('lInput').placeholder=it.name?'Ou escreva: My name is …':'Ou escreva/fale sua resposta…';
+  speakP(p,lRate(),()=>{if(LU.voice&&!LU.busy)lListen()});
 }
 function startChat(k){
   if(k&&k!==TK){TK=k;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}}
@@ -1713,7 +1769,23 @@ function luaQuality(){
 - Keep it rich and varied: never repeat the same reactions, praise or question patterns you already used in this conversation ("Great!", "Nice!", "What about you?"). Vary with natural alternatives ("Oh, that's cool!", "No way!", "Love that!", "How come?", "What's that like?"), and bring in fresh vocabulary instead of recycling the same basic words.
 - You may use small, real details of American daily life (Target, Thanksgiving, the Super Bowl, a road trip, tipping, brunch) to make the language feel alive.`;
 }
+function biRule(){
+  return LU.lv===0?'Iniciante: speak MOSTLY in Brazilian Portuguese (about 70%). Explain, encourage and guide in Portuguese, then present ONE short English phrase at a time and ask the student to answer in English, giving them the exact words to use. Example: "Muito bem! 😊 Em inglês, pra dizer que está bem, a gente fala **I\'m good**. Agora tenta responder: **how are you?**"'
+    :LU.lv===1?'Básico: half Portuguese, half English. Ask your questions in English and right after give a short Portuguese help ("quer dizer…"). Explanations and encouragement in Portuguese.'
+    :'Intermediário/Avançado: mostly English (about 80%). Use Portuguese only for short explanations, corrections or when the student is stuck.';
+}
 function luaFormat(extra){
+  if(LU.bi)return `BILINGUAL MODE — the student wants a fluid conversation mixing Portuguese and English, like a friendly Brazilian teacher. ${biRule()}
+Format: answer ONLY with these labeled lines, each on its own line, in this order. Plain text, at most one emoji.
+FIX: (only if the student's last English attempt has a real mistake: the corrected English sentence, then " — " and a very short explanation in Portuguese. Omit otherwise.)
+MSG: (your whole message, mixing Brazilian Portuguese and English as described above. Wrap EVERY English word or phrase in **double asterisks** and leave Portuguese plain. Keep it short: 2 to 4 short sentences, ending with ONE clear question or task for the student.)
+OPTS: (ALWAYS include: 3 short replies the student could send next, in ENGLISH, from easiest to a bit harder, each as "English sentence = tradução", separated by " | ". They must be real answers to your question.)
+NEW: (one useful English word or expression you taught in this message, as "word = tradução". Max ONE. Omit if none.)
+MEM: (only when you learn a NEW lasting fact about the student, e.g. "name=Ana" or "fact=has a dog named Thor". Omit otherwise.)
+ERR: (only if there was a FIX: the mistake category in Portuguese, 2-4 words. Omit otherwise.)${extra||''}
+If the student writes in Portuguese, that is OK in this mode: answer warmly, then show them how to say it in English and invite them to try.
+Be receptive and warm like a friend: ALWAYS react first to what the student just said, then ask ONE simple question. Never open with a correction, never ask two questions at once, and never leave the student unsure about what to answer.
+Stay on English practice; if the student goes off-topic or asks for something inappropriate, steer back kindly.`;
   return `Format: answer ONLY with these labeled lines, each on its own line, in this order. Plain text, no markdown, at most one emoji.
 FIX: (only if the student's last English message has a real grammar/vocabulary/spelling mistake: the corrected sentence, then " — " and a very short explanation in Brazilian Portuguese. Ignore punctuation/capitalization. Omit otherwise.)
 NATURAL: (only if the student's sentence was correct or already fixed but a native would usually say it differently: the more natural version, then " — " a few words in Portuguese on why. Omit otherwise.)
@@ -1784,9 +1856,9 @@ ${luaQuality()}
 ${luaFormat(extra)}`;
 }
 function lParse(raw){
-  const out={fix:'',natural:'',pron:'',en:'',pt:'',tip:'',opts:'',new:'',mem:'',err:'',step:'',done:'',method:''};let cur=null;
+  const out={msg:'',fix:'',natural:'',pron:'',en:'',pt:'',tip:'',opts:'',new:'',mem:'',err:'',step:'',done:'',method:''};let cur=null;
   raw.split('\n').forEach(line=>{
-    const m=line.match(/^\s*(FIX|NATURAL|PRON|EN|PT|TIP|OPTS|NEW|MEM|ERR|STEP|DONE|METHOD)\s*:\s*(.*)$/i);
+    const m=line.match(/^\s*(MSG|FIX|NATURAL|PRON|EN|PT|TIP|OPTS|NEW|MEM|ERR|STEP|DONE|METHOD)\s*:\s*(.*)$/i);
     if(m){cur=m[1].toLowerCase();out[cur]=(out[cur]?out[cur]+'; ':'')+m[2]}
     else if(cur&&line.trim())out[cur]+=' '+line.trim();
   });
@@ -1796,15 +1868,17 @@ function lParse(raw){
 function lRender(d,p){
   const extra=(p.natural?`<span class="nat">🗽 Mais natural: ${esc(p.natural)}</span>`:'')+(p.pron?`<span class="pron">🗣️ ${esc(p.pron)}</span>`:'');
   const nw=p.new?p.new.split(';')[0].trim():'';
-  d.innerHTML=(p.en?esc(p.en):`<span class="dots"><i></i><i></i><i></i></span><span class="typingl">${TT().name} está digitando…</span>`)+
+  const body=p.msg?esc(p.msg).replace(/\*\*(.+?)\*\*/g,'<b class="enx">$1</b>').replace(/\*\*/g,''):p.en?esc(p.en):'';
+  d.innerHTML=(body||`<span class="dots"><i></i><i></i><i></i></span><span class="typingl">${TT().name} está digitando…</span>`)+
    (LU.pt&&p.pt?`<small>${esc(p.pt)}</small>`:'')+
    (p.fix?`<span class="fix">✏️ ${esc(p.fix)}</span>`:'')+
    (extra?(LU.simple&&!d._more?`<button class="more">+ mais dicas</button>`:extra):'')+
    (p.tip?`<span class="tipx">💡 Você pode dizer: ${esc(p.tip)}</span>`:'')+
    (nw&&d._final?`<span class="neww">📌 Palavra nova: <b>${esc(nw)}</b><em>${LU.words.includes(nw)?'✓ nos cards':''}</em></span>`:'')+
-   (p.en&&d._final?`<span class="bubtools"><button data-a="say">🔊 Ouvir</button><button data-a="slow">🐢 Devagar</button></span>`:'');
+   ((p.en||p.msg)&&d._final?`<span class="bubtools"><button data-a="say">🔊 Ouvir</button><button data-a="slow">🐢 Devagar</button></span>`:'');
   const mb=d.querySelector('.more');if(mb)mb.onclick=e=>{e.stopPropagation();d._more=true;lRender(d,p)};
-  d.querySelectorAll('.bubtools button').forEach(b=>b.onclick=e=>{e.stopPropagation();say(p.en,b.dataset.a==='slow'?0.62:lRate(),null,tVoice(),TT().pitch)});
+  d.querySelectorAll('.bubtools button').forEach(b=>b.onclick=e=>{e.stopPropagation();speakP(p,b.dataset.a==='slow'?0.62:lRate())});
+  d.querySelectorAll('.enx').forEach(x=>x.onclick=e=>{e.stopPropagation();say(x.textContent,0.8,null,tVoice(),TT().pitch)});
   if(p.method&&d._final&&!d._rated&&!LU.simple){
     const k=lMethodKey(p.method);
     if(k){const f=document.createElement('span');f.className='rateq';f.innerHTML=`<em>${esc(k)}</em><button data-v="1">👍 Entendi</button><button data-v="0">🤔 Explica de outro jeito</button>`;
@@ -1814,6 +1888,7 @@ function lRender(d,p){
   }
   d._p=p;d.onclick=null;
 }
+function speakP(p,rate,onend){if(p.msg)sayMixed(p.msg,rate,onend,tVoice(),TT().pitch,TT().g);else if(p.en)say(p.en,rate,onend,tVoice(),TT().pitch);else onend&&onend()}
 function learnWord(nw,ctx){
   if(!nw||LU.words.includes(nw))return;
   const m=nw.match(/^(.+?)\s*=\s*(.+)$/);if(!m)return;
@@ -1857,7 +1932,9 @@ function lSugs(p){
   const o=(p&&p.opts?p.opts.split('|').map(s=>s.trim()).filter(Boolean).slice(0,3):[]);
   const parts=o.map(s=>{const i=s.indexOf('=');return i>0?[s.slice(0,i).trim(),s.slice(i+1).trim()]:[s,'']});
   $('lSugs').innerHTML=parts.length?`<div class="sughead">👇 Toque pra responder (ou escreva/fale embaixo)</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
-  $('lSugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const en=parts[+b.dataset.i][0];say(en,lRate(),null,tVoice(),TT().pitch);lSendText(en,true)});
+  $('lSugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const en=parts[+b.dataset.i][0];
+    if(/…|\.\.\./.test(en)){const base=en.replace(/\s*(…|\.\.\.)\s*$/,' ');$('lInput').value=base+(MEM.name&&/name is/i.test(base)?MEM.name:'');$('lInput').focus();toast('Complete a frase e toque em ➤');return}
+    say(en,lRate(),null,tVoice(),TT().pitch);lSendText(en,true)});
 }
 async function lAsk(){
   if(LU.busy)return;LU.busy=true;$('lSend').disabled=true;lSugs(null);
@@ -1865,13 +1942,13 @@ async function lAsk(){
   const d=document.createElement('div');d.className='bub them';row.appendChild(d);$('lChat').appendChild(row);lRender(d,{});setMood('think');
   d.scrollIntoView({behavior:'smooth',block:'nearest'});
   let spoken=false;
-  const speakNow=p=>{if(spoken||!p.en)return;spoken=true;say(p.en,lRate(),()=>{if(LU.voice&&!LU.busy)lListen()},tVoice(),TT().pitch)};
+  const speakNow=p=>{if(spoken||!(p.en||p.msg))return;spoken=true;speakP(p,lRate(),()=>{if(LU.voice&&!LU.busy)lListen()})};
   try{
-    const r=await LU.sample(lMessages(),{cache:false,modelTier:LQ==='max'?'complex':'default',onText:({text})=>{const p=lParse(text);lRender(d,p);if(p.pt)speakNow(p)}});
+    const r=await LU.sample(lMessages(),{cache:false,modelTier:LQ==='max'?'complex':'default',onText:({text})=>{const p=lParse(text);lRender(d,p);if(p.pt||(p.msg&&(p.opts||p.new)))speakNow(p)}});
     const p=lParse(r.text);d._final=true;lRender(d,p);LU.hist.push({role:'assistant',content:r.text});
-    if(p.new)learnWord(p.new.split(';')[0].trim(),p.en);
+    if(p.new)learnWord(p.new.split(';')[0].trim(),p.en||String(p.msg).replace(/\*\*/g,''));
     lRender(d,p);applyMeta(p);lSugs(p);speakNow(p);
-    const mood=p.done&&/yes/i.test(p.done)?'proud':p.fix?'kind':/!|great|awesome|nice|love|nailed|chiclete/i.test(p.en)?'proud':'happy';
+    const mood=p.done&&/yes/i.test(p.done)?'proud':p.fix?'kind':/!|great|awesome|nice|love|nailed|chiclete|muito bem|isso/i.test(p.en||p.msg)?'proud':'happy';
     setMood(mood);row.querySelector('.av').innerHTML=avatarSVG(TK,mood);addBond(1);
   }catch(e){
     const c=e&&e.code;d.className='bub tip';
@@ -1884,7 +1961,7 @@ async function lAsk(){
 function lSendText(txt,fromSug){
   txt=(txt||'').trim();if(!txt||LU.busy)return;
   const pt=/[ãõçáéíóúâêô]|\b(não|nao|sei|como|que|eu|você|voce|pode|ajuda)\b/i.test(txt)&&!/^[a-z' ,.!?]+$/i.test(txt);
-  if(/^Não (sei|entendi)/.test(txt)||pt||fromSug)LU.struggle=Math.min(3,LU.struggle+1);else LU.struggle=Math.max(0,LU.struggle-1);
+  if(/^Não (sei|entendi)/.test(txt)||(pt&&!LU.bi)||fromSug)LU.struggle=Math.min(3,LU.struggle+1);else LU.struggle=Math.max(0,LU.struggle-1);
   try{speechSynthesis.cancel()}catch(e){}
   const d=document.createElement('div');d.className='bub me';d.textContent=txt;$('lChat').appendChild(d);
   LU.hist.push({role:'user',content:txt});$('lInput').value='';lAsk();
@@ -1893,7 +1970,72 @@ function lSendText(txt,fromSug){
 
 /* ---------- voz (reconhecimento quando o navegador permite; senão, ditado do teclado) ---------- */
 let rec=null,recOk=null;
+let micLang='en-US';
+function micSheet(){
+  let s=$('micSheet');
+  if(!s){s=document.createElement('div');s.id='micSheet';s.className='shade';document.body.appendChild(s);s.onclick=e=>{if(e.target===s)closeMic()}}
+  s.classList.remove('hidden');return s;
+}
+function closeMic(){try{rec&&rec.abort&&rec.abort()}catch(e){}try{MR.rec&&MR.rec.state!=='inactive'&&MR.rec.stop()}catch(e){}
+  if(MR.stream){MR.stream.getTracks().forEach(t=>t.stop());MR.stream=null}MR.cancel=true;const s=$('micSheet');if(s)s.classList.add('hidden');$('lMic').classList.remove('on')}
+function micView(state,text){
+  const s=micSheet();
+  const langBtns=`<div class="miclang"><button data-l="en-US" class="${micLang==='en-US'?'on':''}">🇺🇸 Falar em inglês</button><button data-l="pt-BR" class="${micLang==='pt-BR'?'on':''}">🇧🇷 Em português</button></div>`;
+  if(state==='guide'){
+    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🎤</div><h3>Fale pelo teclado</h3>
+      <p class="meta" style="line-height:1.55;font-size:15px">Este navegador não liberou o microfone do app. Use o ditado do próprio celular:</p>
+      <ol class="micsteps"><li>Toque em <b>Abrir teclado</b></li><li>Toque no <b>🎤 do teclado</b> (canto de baixo)</li><li>Fale sua frase e toque em <b>➤</b></li></ol>
+      <p class="meta" style="font-size:13px">Dica: abrindo o app pelo Safari ou Chrome (ou instalado na tela inicial), o 🎤 do app funciona direto.</p>
+      <div class="row"><button class="btn main" id="micKb">⌨️ Abrir teclado</button><button class="btn" id="micX">Fechar</button></div></div>`;
+    $('micKb').onclick=()=>{closeMic();$('lInput').focus()};$('micX').onclick=closeMic;return;
+  }
+  const label={listen:'Ouvindo… pode falar 👂',rec:'Gravando… fale e toque em Parar',wait:'Entendendo o que você disse…',done:'Era isso que você quis dizer?'}[state]||'';
+  s.innerHTML=`<div class="sheet micbox"><div class="micbig ${state==='listen'||state==='rec'?'live':''}">🎤</div><h3>${label}</h3>
+    ${state!=='done'?langBtns:''}
+    <div class="mictext">${text?esc(text):'<span class="meta">Sua fala aparece aqui</span>'}</div>
+    <div class="row">${state==='rec'?'<button class="btn main" id="micStop">⏹ Parar</button>':''}${state==='listen'?'<button class="btn main" id="micStop">✅ Pronto</button>':''}
+      ${state==='done'?'<button class="btn main" id="micSend">➤ Enviar</button><button class="btn" id="micAgain">🔁 Falar de novo</button>':''}
+      <button class="btn" id="micX">Cancelar</button></div></div>`;
+  s.querySelectorAll('.miclang button').forEach(b=>b.onclick=()=>{micLang=b.dataset.l;closeMic();setTimeout(lListen,150)});
+  const st=$('micStop');if(st)st.onclick=()=>{if(state==='rec'){try{MR.rec.stop()}catch(e){}}else{try{rec.stop()}catch(e){}}};
+  const sd=$('micSend');if(sd)sd.onclick=()=>{closeMic();lSendText(text)};
+  const ag=$('micAgain');if(ag)ag.onclick=()=>{closeMic();setTimeout(lListen,150)};
+  $('micX').onclick=closeMic;
+}
+const MR={rec:null,stream:null,chunks:[],cancel:false};
+async function recordAndTranscribe(){
+  if(typeof serverTranscribe!=='function'||!window.MediaRecorder||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return false;
+  try{MR.stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return false}
+  MR.chunks=[];MR.cancel=false;
+  const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+  try{MR.rec=type?new MediaRecorder(MR.stream,{mimeType:type}):new MediaRecorder(MR.stream)}catch(e){return false}
+  MR.rec.ondataavailable=e=>{if(e.data&&e.data.size)MR.chunks.push(e.data)};
+  MR.rec.onstop=async()=>{
+    if(MR.stream){MR.stream.getTracks().forEach(t=>t.stop());MR.stream=null}
+    if(MR.cancel)return;
+    micView('wait','');
+    try{const blob=new Blob(MR.chunks,{type:MR.rec.mimeType||'audio/webm'});const t=await serverTranscribe(blob,micLang.startsWith('pt')?'pt':'en');
+      if(t&&t.trim())micView('done',t.trim());else micView('guide')}
+    catch(e){micView('guide')}
+  };
+  MR.rec.start();micView('rec','');$('lMic').classList.add('on');
+  setTimeout(()=>{try{MR.rec&&MR.rec.state==='recording'&&MR.rec.stop()}catch(e){}},30000);
+  return true;
+}
 function lListen(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR||recOk===false){recordAndTranscribe().then(ok=>{if(!ok)micView('guide')});return}
+  try{
+    try{speechSynthesis.cancel()}catch(e){}
+    rec=new SR();rec.lang=micLang;rec.interimResults=true;rec.maxAlternatives=1;rec.continuous=false;
+    let txt='';micView('listen','');
+    rec.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;txt=t;const el=document.querySelector('#micSheet .mictext');if(el)el.textContent=t};
+    rec.onerror=e=>{if(/not-allowed|service-not-allowed|audio-capture|network|language-not-supported/.test(e.error)){recOk=false;closeMic();recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}};
+    rec.onend=()=>{$('lMic').classList.remove('on');if(recOk!==false)recOk=true;if(txt.trim()){if(LU.voice){closeMic();lSendText(txt.trim())}else micView('done',txt.trim())}else if(recOk!==false&&$('micSheet')&&!$('micSheet').classList.contains('hidden'))micView('done','')};
+    rec.start();$('lMic').classList.add('on');
+  }catch(e){recOk=false;recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}
+}
+function lListenOld(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const fallback=()=>{recOk=false;$('lMicHint').classList.remove('hidden');$('lInput').focus();$('lMic').classList.remove('on')};
   if(!SR||recOk===false)return fallback();
@@ -1907,7 +2049,7 @@ function lListen(){
     rec.start();$('lMic').classList.add('on');
   }catch(e){fallback()}
 }
-$('lMic').onclick=()=>{if($('lMic').classList.contains('on')&&rec){try{rec.stop()}catch(e){}return}lListen()};
+$('lMic').onclick=()=>{unlockAudio();lListen()};
 
 /* ---------- setup ---------- */
 function lBanner(){
@@ -1972,7 +2114,8 @@ $('lForget').onclick=()=>{
 };
 $('lStart').onclick=()=>{
   unlockAudio();try{speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(e){}
-  LU.mode=LU.tab;LU.hist=[];LU.step=0;LU.done=false;LU.struggle=0;LU.words=[];LU.pack=LU.mode==='talk'&&L_SCEN[LU.sc][1]==='__ERRORS__'?[]:pickPack(6);LU.simple=LU.lv<=1||LU.simpleForced;
+  LU.mode=LU.tab;LU.hist=[];LU.step=0;LU.done=false;LU.struggle=0;LU.words=[];LU.pack=LU.mode==='talk'&&L_SCEN[LU.sc][1]==='__ERRORS__'?[]:pickPack(6);LU.simple=LU.lv<=1||LU.simpleForced;LU.bi=LU.biForced!=null?LU.biForced:LU.lv<=1;
+  $('lBi').textContent='🇧🇷🇺🇸 Bilíngue: '+(LU.bi?'sim':'não');$('lBi').classList.toggle('on',LU.bi);
   $('lSimple').textContent='🧘 Modo simples: '+(LU.simple?'sim':'não');$('lSimple').classList.toggle('on',LU.simple);MEM.sessions++;saveMem();
   $('lChat').innerHTML='';$('lSetup').classList.add('hidden');$('lChatWrap').classList.remove('hidden');
   $('chatHead').classList.remove('hidden');$('chAv').innerHTML=avatarSVG(TK,'happy');$('chAv').style.setProperty('--tg',TT().tg);$('chAv').onclick=openProfile;$('chName').innerHTML='<span class="tfont">Teacher <b style="color:'+TT().color+'">'+TT().name+'</b></span>';$('chTag').textContent=TT().tag;
@@ -1986,6 +2129,7 @@ $('diagBtn').onclick=async()=>{
   try{const r=await serverSample([{role:'user',content:'Reply with exactly: OK'}],{});toast(/ok/i.test(r.text)?'✅ Professores conectados!':'✅ Conectado ('+r.text.slice(0,20)+')')}
   catch(e){const s=document.createElement('div');s.className='shade';s.innerHTML=`<div class="sheet"><div class="big" style="font-size:22px">🩺 Diagnóstico</div><p style="line-height:1.5">${esc(e.friendly||'Sem conexão com o servidor.')}</p><button class="btn main" id="dgOk">Ok</button></div>`;document.body.appendChild(s);s.querySelector('#dgOk').onclick=()=>s.remove()}
 };
+$('lBi').onclick=()=>{LU.bi=!LU.bi;LU.biForced=LU.bi;$('lBi').textContent='🇧🇷🇺🇸 Bilíngue: '+(LU.bi?'sim':'não');$('lBi').classList.toggle('on',LU.bi);toast(LU.bi?'Agora o professor mistura português e inglês':'Agora a conversa é toda em inglês')};
 $('lMoreBtn').onclick=()=>$('lMore').classList.toggle('hidden');
 $('lInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();lSendText($('lInput').value)}});
 $('lHelp').onclick=()=>lSendText('Não sei o que responder. Pode me ajudar?');
@@ -1996,7 +2140,7 @@ $('lNew').onclick=async()=>{
   if(userMsgs<2||!LU.sample||LU.busy){closeChat();return}
   LU.busy=true;$('lSugs').innerHTML='';try{speechSynthesis.cancel()}catch(e){}
   const d=document.createElement('div');d.className='bub summary';d.innerHTML='<b>📋 Preparando o resumo da conversa…</b>';$('lChat').appendChild(d);d.scrollIntoView({behavior:'smooth'});
-  const conv=LU.hist.map(m=>(m.role==='user'?'STUDENT: ':'TEACHER: ')+(m.role==='assistant'?lParse(m.content).en+(lParse(m.content).fix?' [FIX: '+lParse(m.content).fix+']':''):m.content)).join('\n').slice(-6000);
+  const conv=LU.hist.map(m=>(m.role==='user'?'STUDENT: ':'TEACHER: ')+(m.role==='assistant'?(lParse(m.content).en||lParse(m.content).msg)+(lParse(m.content).fix?' [FIX: '+lParse(m.content).fix+']':''):m.content)).join('\n').slice(-6000);
   const prompt=`You are an English teacher summarizing a short practice conversation for a Brazilian student (level: ${L_LEVELS[LU.lv][0]}). Conversation:\n${conv}\n\nAnswer ONLY with these lines, in Brazilian Portuguese except the English examples, plain text, encouraging and very short:\nGOOD: (one specific thing the student did well)\nIMPROVE: (the ONE most important thing to improve, with the correct English example)\nWORDS: (3 to 5 useful words/expressions from this conversation as "word = tradução", separated by " | ")\nNEXT: (one tiny concrete thing to practice next time)`;
   let txt='';
   try{const r=await LU.sample(prompt,{cache:false,modelTier:'default'});txt=r.text}catch(e){}

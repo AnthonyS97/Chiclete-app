@@ -438,6 +438,24 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px soli
 .tcardx .av{width:64px;height:64px;margin-bottom:8px}
 .onb .dots{margin-bottom:18px}
 
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#120b26f7;border-top:1px solid var(--line);backdrop-filter:blur(12px)}
+.tabbar button{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:16px;font-size:24px;color:var(--dim)}
+.tabbar button span{font-size:14px;font-weight:800}
+.tabbar button.on{background:#ffffff12;color:var(--text)}
+.tabbar button.on span{color:var(--tc,var(--lemon))}
+body.hasTabs{padding-bottom:96px}
+.homeBtn{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;border-radius:16px;background:#ffffff10;border:1px solid var(--line);font-size:22px}
+.homeBtn span{font-size:12.5px;font-weight:800}
+.taphint{font-size:13.5px;color:var(--dim);font-weight:700;margin-top:8px}
+.av.wave{animation:wave 1.1s ease-in-out}
+@keyframes wave{0%,100%{transform:rotate(0)}20%{transform:rotate(-10deg) scale(1.04)}40%{transform:rotate(8deg) scale(1.04)}60%{transform:rotate(-6deg)}80%{transform:rotate(4deg)}}
+.bub.me{position:relative}
+.react{position:absolute;left:-14px;bottom:-12px;font-size:20px;background:#241a45;border:1px solid var(--line);border-radius:99px;padding:1px 6px;box-shadow:0 4px 10px #0006;animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+.mrow+.bub.me,.bub.me{margin-bottom:6px}
+.hero .speech{min-height:64px}
+
+.toast{bottom:auto!important;top:calc(14px + env(safe-area-inset-top));z-index:60}
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:#120b26f2;border-top:1px solid var(--line);backdrop-filter:blur(10px);display:flex;justify-content:center;z-index:5}
 nav .in{display:flex;max-width:560px;width:100%}
@@ -552,7 +570,7 @@ nav button.on{color:var(--lemon)}
 
 <div class="wrap hidden" id="teacher">
   <div class="topbar"><span class="logoSlot"></span><button class="menuBtn" data-menu aria-label="Menu">☰</button></div>
-  <div class="thead hidden" id="chatHead"><div class="av av-live" id="chAv"></div><div><div class="brand" style="font-size:22px" id="chName"></div><div class="meta" id="chTag"></div></div></div>
+  <div class="thead hidden" id="chatHead"><div class="av av-live" id="chAv"></div><div style="flex:1;min-width:0"><div class="brand" style="font-size:22px" id="chName"></div><div class="meta" id="chTag"></div></div><button class="homeBtn" id="chatHome" aria-label="Voltar ao início">🏠<span>Início</span></button></div>
 
   <div id="lSetup">
     <div class="hello hidden" id="luaHello"></div>
@@ -609,7 +627,7 @@ nav button.on{color:var(--lemon)}
     <div class="mbanner hidden" id="lBanner"></div>
     <div class="quick">
       <button id="lHelp">🆘 Me ajuda</button>
-      <button id="lNew">⏹ Terminar</button>
+      <button id="lNew">✅ Terminar e ver resumo</button>
       <button id="lMoreBtn">⚙️ Opções</button>
     </div>
     <div class="quick hidden" id="lMore">
@@ -636,6 +654,12 @@ nav button.on{color:var(--lemon)}
 
 <div class="shade hidden" id="profShade"><div class="sheet prof" id="prof"></div></div>
 <div class="onb hidden" id="onb"><div class="in" id="onbIn"></div></div>
+<nav class="tabbar" id="tabbar" aria-label="Navegação principal">
+  <button data-go="teacher" data-tab="teacher">🏠<span>Início</span></button>
+  <button data-go="home" data-tab="home">🎵<span>Músicas</span></button>
+  <button data-go="cards" data-tab="cards">🃏<span>Revisar</span></button>
+  <button data-menu data-tab="menu">☰<span>Mais</span></button>
+</nav>
 <div class="drawer hidden" id="drawer"><div class="panel">
   <div style="margin-bottom:14px"><span class="logoSlot"></span></div>
   <button class="item" data-go="teacher"><span class="ic">🧑‍🏫</span><span>Professores<small>Conversa, aulas e missões</small></span></button>
@@ -1368,8 +1392,15 @@ function renderCards(){
 }
 
 /* ===================== NAV ===================== */
+let CURV='teacher';
 function show(view){
-  ['home','player','cards','teacher'].forEach(v=>$(v).classList.toggle('hidden',v!==view));
+  CURV=view;['home','player','cards','teacher'].forEach(v=>$(v).classList.toggle('hidden',v!==view));updTabs();
+}
+function updTabs(){
+  const chat=!$('lChatWrap').classList.contains('hidden');
+  const vis=!chat&&CURV!=='player'&&$('onb').classList.contains('hidden');
+  $('tabbar').classList.toggle('hidden',!vis);document.body.classList.toggle('hasTabs',vis);
+  $('tabbar').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab===CURV));
 }
 function go(where){
   $('drawer').classList.add('hidden');stopSong();$('shade').classList.add('hidden');
@@ -1601,7 +1632,7 @@ function onbFinish(skip){
     D.lv=OB.lv;LU.lv=OB.lv;TK=OB.tk;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}
     saveMem();
   }
-  D.onboarded=true;saveD();$('onb').classList.add('hidden');
+  D.onboarded=true;saveD();$('onb').classList.add('hidden');updTabs();
   if(LU.inited){$('lLevel').querySelectorAll('button').forEach((x,i)=>x.classList.toggle('on',i===LU.lv))}
   renderMem();updateToday();window.scrollTo(0,0);
   if(!skip)setTimeout(()=>startGuided(TK,0),250);
@@ -1799,17 +1830,35 @@ function renderHero(){
   const t=TT(),b=bondInfo();
   $('hero').style.setProperty('--tc',t.color);
   $('hero').innerHTML=`<div class="deco">${t.deco}</div>
-    <div class="row1">${avHTML(TK,'happy','av-live')}<div class="speech tfont">${esc(greeting())}</div></div>
+    <div class="row1">${avHTML(TK,'happy','av-live wave')}<div class="speech tfont"></div></div>
+    <div class="taphint">👆 Toque em ${t.name} pra ${t.g==='m'?'ele':'ela'} falar com você</div>
     <div class="who"><b class="tfont">Teacher ${t.name}</b><span class="tag" style="margin:0">${esc(t.tag)}</span></div>
     <div class="tstatus">Agora: ${esc(todayStatus())}</div>
     <div class="bond"><div class="lbl"><span>💞 Amizade: <b>${b.name}</b></span><span>${b.next?'próximo: '+b.next:'nível máximo!'}</span></div><div class="bar"><i style="width:${b.pct}%"></i></div></div>
     <button class="lessonbtn tfont" id="heroLesson"><b>▶ Começar aula ${nextLessonIdx()+1}: ${GUIDED[nextLessonIdx()].e} ${esc(GUIDED[nextLessonIdx()].t)}</b><small>5 passos · uns 5 minutos · ${t.name} te guia em português</small></button>
-    <div class="cta"><button class="btn" id="heroGo" style="flex:1">💬 Só conversar</button><button class="btn" id="heroProf">Perfil</button></div>
+    <div class="cta"><button class="btn bigbtn" id="heroGo" style="flex:1">💬 Conversar livre</button><button class="btn bigbtn" id="heroProf" style="flex:1">👤 Conhecer ${t.name}</button></div>
     <div class="switch">${Object.entries(TEACHERS).map(([k,x])=>`<button data-k="${k}" class="${k===TK?'on':''}" style="--sc:${x.color}">${avHTML(k,'happy')}<span>${x.name}<small>${k===TK?'seu professor':'trocar'}</small></span></button>`).join('')}</div>`;
-  $('hero').querySelector('.av').onclick=()=>startGuided(TK);$('heroProf').onclick=openProfile;
+  $('hero').querySelector('.av').onclick=aliveLine;typeSpeech($('hero').querySelector('.speech'),greeting());$('heroProf').onclick=openProfile;
   $('heroLesson').onclick=()=>startGuided(TK);
   $('heroGo').onclick=()=>startChat(TK);
   $('hero').querySelectorAll('.switch button').forEach(bt=>bt.onclick=()=>{if(bt.dataset.k===TK)return startGuided(TK);TK=bt.dataset.k;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}applyTheme();renderPick();renderHero();updateToday();unlockAudio();teacherSpeak(TT().hi,0.95)});
+}
+
+/* ---------- professores "vivos" ---------- */
+const ALIVE={
+ lua:['Ei! 😄 Bora treinar 5 minutinhos comigo?','Tô com uma música na cabeça… 🎶 "Hello, hello, how are you today?" Grudou!','Sabia que chiclete em inglês é **bubble gum**? 🍬','O Biscoito deitou no meu teclado de novo… 🐱 Enquanto isso, bora praticar?','Hoje eu acordei animada! Vamos aprender uma frase nova? ✨','Psiu! Errar faz parte. Eu tô aqui pra te ajudar, sem julgamento. 💖'],
+ anthony:['Hey! 👊 Uma aula rápida e pronto, combinado?','Tô afinando o violão aqui… 🎸 Bora praticar enquanto isso?','Dica do dia: americano fala **gonna** no lugar de "going to". Relax! 😄','Passo a passo, sem pressa. **Let\'s go!**','Voltei do basquete agora. 🏀 Bora treinar o inglês também?','Sabe o que funciona? Um pouquinho todo dia. **Consistency!** 💪']
+};
+function typeSpeech(el,text){
+  if(!el)return;clearInterval(el._t);el.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
+  const html=esc(text).replace(/\*\*(.+?)\*\*/g,'<b class="enx">$1</b>');
+  setTimeout(()=>{const plain=html;let i=0;el.innerHTML='';
+    el._t=setInterval(()=>{i+=2;if(plain[i-1]==='<'||plain[i-2]==='<'){const j=plain.indexOf('>',i);if(j>0)i=j+1}el.innerHTML=plain.slice(0,i);if(i>=plain.length)clearInterval(el._t)},18)},500);
+}
+function aliveLine(){
+  const L=ALIVE[TK];const n=(aliveLine._n=(aliveLine._n||0)+1);const line=L[(Math.floor(Date.now()/1000)+n)%L.length];
+  const av=$('hero').querySelector('.av');if(av){av.classList.remove('wave');void av.offsetWidth;av.classList.add('wave');av.innerHTML=avatarSVG(TK,'proud');setTimeout(()=>{av.innerHTML=avatarSVG(TK,'happy')},2200)}
+  typeSpeech($('hero').querySelector('.speech'),line);unlockAudio();teacherSpeak(line,0.95);
 }
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='profShade')$('profShade').classList.add('hidden')});
 
@@ -1829,8 +1878,8 @@ function renderGCard(){
 function guidedIntro(){
   const g=GUIDED[LU.g.l],s=g.steps[0],n=MEM.name;
   const msg=TK==='anthony'
-    ?`E aí${n?', '+n:''}! 👊 Aula de hoje: ${g.e} ${g.t}. São 5 passos rápidos, um de cada vez, e eu te guio. Passo 1: ${s.t}. Em inglês a gente diz **${s.phrase}** ("${s.pt}"). Sua vez: toque numa resposta ou fale no 🎤!`
-    :`Oi${n?', '+n:''}! 😊 Bora pra aula de hoje: ${g.e} ${g.t}! São 5 passinhos rápidos e eu te guio em cada um. Passo 1: ${s.t}. Em inglês a gente diz **${s.phrase}**, que quer dizer "${s.pt}". Sua vez: toque numa resposta ou fale no 🎤!`;
+    ?`E aí${n?', '+n:''}! 👊 Hoje: ${g.e} ${g.t}. Primeira jogada: **${s.phrase}** ("${s.pt}"). Manda aí!`
+    :`Oi${n?', '+n:''}! 😊 Hoje é ${g.e} ${g.t}. Começa assim: **${s.phrase}** ("${s.pt}"). Tenta aí!`;
   const raw=`MSG: ${msg}\nOPTS: ${s.opts.join(' | ')}`;
   LU.hist=[{role:'assistant',content:raw}];
   const row=document.createElement('div');row.className='mrow';row.innerHTML=avHTML(TK,'happy');
@@ -1861,13 +1910,13 @@ function introFor(k){
     const okOpts=['I\'m good, thanks! = Tô bem, obrigado(a)!','I\'m great! And you? = Tô ótimo(a)! E você?','I\'m a little tired. = Tô um pouco cansado(a).'];
     const nameOpts=['Hi! My name is … = Oi! Meu nome é …','Nice to meet you! = Prazer em te conhecer!','I\'m a beginner. = Eu sou iniciante.'];
     if(k==='anthony'){
-      if(n&&known)return {msg:`E aí, ${n}! Bom te ver de novo. 👊 Aquecimento rápido: me responde em inglês, **how's it going?** Quer dizer "como vão as coisas?"`,opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
-      if(n)return {msg:`E aí, ${n}! Eu sou o Anthony, seu professor de inglês. 👊 Aqui é passo a passo, misturando português e inglês. Primeira jogada: **how are you?** Quer dizer "como você está?". Responde aí!`,opts:okOpts};
-      return {msg:"E aí! Eu sou o Anthony, seu professor de inglês. 👊 A gente vai passo a passo, misturando português e inglês. Primeiro passo: pra se apresentar, você diz **My name is…** Bora tentar? **What's your name?**",opts:nameOpts,name:true};
+      if(n&&known)return {msg:`E aí, ${n}! 👊 Bom te ver. **How's it going?** ("Como vão as coisas?")`,opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
+      if(n)return {msg:`E aí, ${n}! Sou o Anthony. 👊 Vamos de leve: **How are you?** ("Como você está?")`,opts:okOpts};
+      return {msg:"E aí! Sou o Anthony. 👊 Pra começar: **What's your name?** Responde com **My name is…**",opts:nameOpts,name:true};
     }
-    if(n&&known)return {msg:`Oi, ${n}! Que bom te ver de novo! 😊 Vamos treinar um pouquinho? Me responde em inglês: **How are you today?** Quer dizer "como você está hoje?"`,opts:okOpts};
-    if(n)return {msg:`Oi, ${n}! Eu sou a Lua, sua professora de inglês! 😊 Aqui a gente mistura português e inglês, no seu ritmo, sem vergonha nenhuma. Pra começar, uma fácil: **How are you today?** Quer dizer "como você está hoje?"`,opts:okOpts};
-    return {msg:"Oi! Eu sou a Lua, sua professora de inglês! 😊 Aqui a gente conversa misturando português e inglês, no seu ritmo. Pra começar: pra dizer seu nome em inglês, você fala **My name is…** Me conta, **what's your name?**",opts:nameOpts,name:true};
+    if(n&&known)return {msg:`Oi, ${n}! Que saudade! 😊 **How are you today?** ("Como você tá hoje?")`,opts:okOpts};
+    if(n)return {msg:`Oi, ${n}! Eu sou a Lua! 😊 Bora de uma fácil: **How are you today?** ("Como você tá hoje?")`,opts:okOpts};
+    return {msg:"Oi! Eu sou a Lua! 😊 Me conta: **What's your name?** Responde com **My name is…**",opts:nameOpts,name:true};
   }
   if(k==='anthony'){
     if(n&&known)return {en:`Hey ${n}! Good to see you again. 👊 How's it going today?`,pt:`E aí, ${n}! Bom te ver de novo. Como estão as coisas hoje?`,
@@ -1959,9 +2008,11 @@ function biRule(){
 }
 function luaFormat(extra){
   if(LU.bi)return `BILINGUAL MODE — the student wants a fluid conversation mixing Portuguese and English, like a friendly Brazilian teacher. ${biRule()}
+LIGHT & ALIVE STYLE (most important): text like a real friend on WhatsApp, not a teacher writing a lesson. Max 2 short sentences (beginners: about 20 words total). Casual and warm, contractions, a little humor, genuine reactions ("Haha, adorei!", "Sério?! 😄", "Boa!!"). One idea per message. Never formal or robotic (avoid "Excelente resposta", "Muito bem, aluno", "Vamos prosseguir"), never lists, never repeat the same opening twice. Show personality and small moments of your own life when natural.
+REACT: (ALWAYS, except on your very first message: ONE emoji reacting to the student's last message, like a friend would: 👏 😄 🔥 ❤️ 🙌 😂 🤩 💪 🤔)
 Format: answer ONLY with these labeled lines, each on its own line, in this order. Plain text, at most one emoji.
 FIX: (only if the student's last English attempt has a real mistake: the corrected English sentence, then " — " and a very short explanation in Portuguese. Omit otherwise.)
-MSG: (your whole message, mixing Brazilian Portuguese and English as described above. Wrap EVERY English word or phrase in **double asterisks** and leave Portuguese plain. Keep it short: 2 to 4 short sentences, ending with ONE clear question or task for the student.)
+MSG: (your whole message, mixing Brazilian Portuguese and English as described above. Wrap EVERY English word or phrase in **double asterisks** and leave Portuguese plain. Keep it SHORT and light: 1 to 2 short sentences, ending with ONE clear question or task for the student.)
 OPTS: (ALWAYS include: 3 short replies the student could send next, in ENGLISH, from easiest to a bit harder, each as "English sentence = tradução", separated by " | ". They must be real answers to your question.)
 NEW: (one useful English word or expression you taught in this message, as "word = tradução". Max ONE. Omit if none.)
 MEM: (only when you learn a NEW lasting fact about the student, e.g. "name=Ana" or "fact=has a dog named Thor". Omit otherwise.)
@@ -1969,7 +2020,9 @@ ERR: (only if there was a FIX: the mistake category in Portuguese, 2-4 words. Om
 If the student writes in Portuguese, that is OK in this mode: answer warmly, then show them how to say it in English and invite them to try.
 Be receptive and warm like a friend: ALWAYS react first to what the student just said, then ask ONE simple question. Never open with a correction, never ask two questions at once, and never leave the student unsure about what to answer.
 Stay on English practice; if the student goes off-topic or asks for something inappropriate, steer back kindly.`;
-  return `Format: answer ONLY with these labeled lines, each on its own line, in this order. Plain text, no markdown, at most one emoji.
+  return `LIGHT & ALIVE STYLE (most important): text like a real friend on WhatsApp, not a teacher writing a lesson. Max 2 short sentences (beginners: about 20 words total). Casual and warm, contractions, a little humor, genuine reactions ("Haha, adorei!", "Sério?! 😄", "Boa!!"). One idea per message. Never formal or robotic (avoid "Excelente resposta", "Muito bem, aluno", "Vamos prosseguir"), never lists, never repeat the same opening twice. Show personality and small moments of your own life when natural.
+REACT: (ALWAYS, except on your very first message: ONE emoji reacting to the student's last message, like a friend would: 👏 😄 🔥 ❤️ 🙌 😂 🤩 💪 🤔)
+Format: answer ONLY with these labeled lines, each on its own line, in this order. Plain text, no markdown, at most one emoji.
 FIX: (only if the student's last English message has a real grammar/vocabulary/spelling mistake: the corrected sentence, then " — " and a very short explanation in Brazilian Portuguese. Ignore punctuation/capitalization. Omit otherwise.)
 NATURAL: (only if the student's sentence was correct or already fixed but a native would usually say it differently: the more natural version, then " — " a few words in Portuguese on why. Omit otherwise.)
 EN: (your reply in English)
@@ -1999,6 +2052,7 @@ function lSystem(){
 Steps:
 ${g.steps.map((s,i)=>`${i+1}. ${s.t} — the student must ${s.goal}, e.g. "${s.phrase}"${i===cur?'   <== CURRENT STEP':''}`).join('\n')}
 How to run it:
+- Keep it light: celebrate like a friend ("Boa!! 🙌", "Arrasou!"), never like a textbook.
 - If the student's reply achieves the CURRENT step (small mistakes are fine; personal versions are great, e.g. their real name, city or time), praise them in one short sentence (gently fix a mistake if any), then IMMEDIATELY introduce the NEXT step in the same message: say "Passo ${cur+2}: <step title>", model its English phrase in **bold asterisks** with the Portuguese meaning, and invite them to try. Output STEP: done.
 - If the reply does not achieve the current step yet (wrong, off-topic, in Portuguese, or "não sei"), help kindly: model the phrase again, maybe break it into small pieces, and ask them to try again. Do NOT output STEP.
 - When step 5 is achieved: celebrate the whole lesson warmly and recap the 5 phrases in one line. Output STEP: done and DONE: yes. Do not start anything new.
@@ -2049,9 +2103,9 @@ ${luaQuality()}
 ${luaFormat(extra)}`;
 }
 function lParse(raw){
-  const out={msg:'',fix:'',natural:'',pron:'',en:'',pt:'',tip:'',opts:'',new:'',mem:'',err:'',step:'',done:'',method:''};let cur=null;
+  const out={react:'',msg:'',fix:'',natural:'',pron:'',en:'',pt:'',tip:'',opts:'',new:'',mem:'',err:'',step:'',done:'',method:''};let cur=null;
   raw.split('\n').forEach(line=>{
-    const m=line.match(/^\s*(MSG|FIX|NATURAL|PRON|EN|PT|TIP|OPTS|NEW|MEM|ERR|STEP|DONE|METHOD)\s*:\s*(.*)$/i);
+    const m=line.match(/^\s*(REACT|MSG|FIX|NATURAL|PRON|EN|PT|TIP|OPTS|NEW|MEM|ERR|STEP|DONE|METHOD)\s*:\s*(.*)$/i);
     if(m){cur=m[1].toLowerCase();out[cur]=(out[cur]?out[cur]+'; ':'')+m[2]}
     else if(cur&&line.trim())out[cur]+=' '+line.trim();
   });
@@ -2062,7 +2116,7 @@ function lRender(d,p){
   const extra=(p.natural?`<span class="nat">🗽 Mais natural: ${esc(p.natural)}</span>`:'')+(p.pron?`<span class="pron">🗣️ ${esc(p.pron)}</span>`:'');
   const nw=p.new?p.new.split(';')[0].trim():'';
   const body=p.msg?esc(p.msg).replace(/\*\*(.+?)\*\*/g,'<b class="enx">$1</b>').replace(/\*\*/g,''):p.en?esc(p.en):'';
-  d.innerHTML=(body||`<span class="dots"><i></i><i></i><i></i></span><span class="typingl">${TT().name} está digitando…</span>`)+
+  d.innerHTML=(body||`<span class="dots"><i></i><i></i><i></i></span><span class="typingl">${TK==='anthony'?'Anthony está pensando… 🎸':'Lua está pensando… 🎶'}</span>`)+
    (LU.pt&&p.pt?`<small>${esc(p.pt)}</small>`:'')+
    (p.fix?`<span class="fix">✏️ ${esc(p.fix)}</span>`:'')+
    (extra?(LU.simple&&!d._more?`<button class="more">+ mais dicas</button>`:extra):'')+
@@ -2167,6 +2221,7 @@ async function lAsk(){
     const p=lParse(r.text);d._final=true;lRender(d,p);LU.hist.push({role:'assistant',content:r.text});
     if(p.new)learnWord(p.new.split(';')[0].trim(),p.en||String(p.msg).replace(/\*\*/g,''));
     lRender(d,p);applyMeta(p);if(!(LU.mode==='guided'&&LU.done))lSugs(p);speakNow(p);
+    if(p.react){const mine=$('lChat').querySelectorAll('.bub.me');const last=mine[mine.length-1];if(last&&!last.querySelector('.react')){const r=document.createElement('span');r.className='react';r.textContent=[...p.react.trim()].slice(0,2).join('');r.title=TT().name+' reagiu';last.appendChild(r)}}
     const mood=p.done&&/yes/i.test(p.done)?'proud':p.fix?'kind':/!|great|awesome|nice|love|nailed|chiclete|muito bem|isso/i.test(p.en||p.msg)?'proud':'happy';
     setMood(mood);row.querySelector('.av').innerHTML=avatarSVG(TK,mood);addBond(1);
   }catch(e){
@@ -2383,7 +2438,7 @@ $('lStart').onclick=()=>{
   $('lBi').textContent='🇧🇷🇺🇸 Bilíngue: '+(LU.bi?'sim':'não');$('lBi').classList.toggle('on',LU.bi);
   $('lSimple').textContent='🧘 Modo simples: '+(LU.simple?'sim':'não');$('lSimple').classList.toggle('on',LU.simple);MEM.sessions++;saveMem();
   $('lChat').innerHTML='';$('lSetup').classList.add('hidden');$('lChatWrap').classList.remove('hidden');
-  $('chatHead').classList.remove('hidden');$('chAv').innerHTML=avatarSVG(TK,'happy');$('chAv').style.setProperty('--tg',TT().tg);$('chAv').onclick=openProfile;$('chName').innerHTML='<span class="tfont">Teacher <b style="color:'+TT().color+'">'+TT().name+'</b></span>';$('chTag').textContent=TT().tag;
+  $('chatHead').classList.remove('hidden');setTimeout(updTabs,0);$('chAv').innerHTML=avatarSVG(TK,'happy');$('chAv').style.setProperty('--tg',TT().tg);$('chAv').onclick=openProfile;$('chName').innerHTML='<span class="tfont">Teacher <b style="color:'+TT().color+'">'+TT().name+'</b></span>';$('chTag').textContent=TT().tag;
   applyTheme();
   $('lMore').classList.add('hidden');lBanner();window.scrollTo(0,0);
   if(LU.mode==='guided'){LU.pack=[];guidedIntro()}
@@ -2404,7 +2459,8 @@ $('lMoreBtn').onclick=()=>$('lMore').classList.toggle('hidden');
 $('lInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();lSendText($('lInput').value)}});
 $('lHelp').onclick=()=>lSendText('Não sei o que responder. Pode me ajudar?');
 function closeChat(){$('chatHead').classList.add('hidden');try{speechSynthesis.cancel();rec&&rec.stop()}catch(e){};LU.hist=[];LU.voice=false;$('lVoiceMode').textContent='🎧 Modo voz: não';$('lVoiceMode').classList.remove('on');
-  $('lChatWrap').classList.add('hidden');$('lSetup').classList.remove('hidden');$('lMicHint').classList.add('hidden');renderMem();window.scrollTo(0,0)}
+  $('lChatWrap').classList.add('hidden');$('lSetup').classList.remove('hidden');$('lMicHint').classList.add('hidden');renderMem();updTabs();window.scrollTo(0,0)}
+$('chatHome').onclick=()=>{try{stopTeacherAudio()}catch(e){}closeChat();go('teacher')};
 $('lNew').onclick=async()=>{
   const userMsgs=LU.hist.filter(m=>m.role==='user').length;
   if(userMsgs<2||!LU.sample||LU.busy){closeChat();return}
@@ -2438,6 +2494,7 @@ document.querySelectorAll('.logoSlot').forEach(e=>e.innerHTML=logoSVG(32));
 if(D.lv!=null)LU.lv=D.lv;
 renderHome();show('teacher');initTeacher();rollDay();updateToday();
 if(!D.onboarded){$('onb').classList.remove('hidden');onbRender()}
+updTabs();
 </script>
 </body>
 </html>

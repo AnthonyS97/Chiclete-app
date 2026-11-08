@@ -372,6 +372,46 @@ body.speaking .av-live .m-closed{animation:talk2 .22s infinite alternate}
 .donecard{align-self:stretch;text-align:center;padding:18px;border-radius:20px;background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 35%,#20173f),#1a1336);border:1px solid var(--tc)}
 .donecard h3{font-size:24px;margin:6px 0}
 
+/* ===== Acessibilidade: leitura fácil pra todas as idades ===== */
+:root{--dim:#c9bff0}
+body{font-size:17px;line-height:1.45}
+.bub{font-size:18px;line-height:1.45;max-width:88%}
+.bub small{font-size:15.5px;opacity:.85}
+.bub .fix,.bub .neww,.bub .tipx,.bub .nat,.bub .pron{font-size:15px}
+.bubtools button{font-size:15px;padding:9px 14px;min-height:40px}
+.quick button{font-size:15px;padding:10px 14px;min-height:44px}
+.sugs{flex-direction:column;align-items:stretch;gap:8px}
+.sugs button{width:100%;padding:13px 16px;border-radius:18px;font-size:18px;text-align:left;min-height:56px;background:#ff5fa21c;border:2px solid color-mix(in srgb,var(--tc,#ff5fa2) 55%,transparent)}
+.sugs button b{font-size:18px}.sugs button small{font-size:15px;opacity:.8}
+.sughead{font-size:16px}
+.gcard .gnow{font-size:17px}.gphrase{font-size:17px}
+.btn{min-height:46px;font-size:16px}
+.bigbtn{min-height:54px;font-size:17px;padding:12px 18px}
+.big2{font-size:16px;line-height:1.5}
+.micsteps{font-size:17px;line-height:1.8}
+.mictext{font-size:21px}
+.micbox h3{font-size:24px}
+.micbig{width:116px;height:116px;font-size:50px}
+.micbig.wait{background:#ffffff18}
+.dock{position:sticky;bottom:10px;z-index:5;display:flex;align-items:center;gap:10px;padding:10px;margin-top:10px;border-radius:26px;background:#120b26f5;border:1px solid var(--line);backdrop-filter:blur(10px);box-shadow:0 -6px 24px #0005}
+.bigmic{flex:1;height:76px;border-radius:999px;background:var(--tc,var(--pink));color:#160f2b;display:flex;align-items:center;justify-content:center;gap:10px;font-size:32px;font-weight:800;box-shadow:0 6px 0 #0004,0 0 28px color-mix(in srgb,var(--tc,#ff5fa2) 45%,transparent)}
+.bigmic span{font-size:19px}
+.bigmic:active{transform:translateY(3px);box-shadow:0 3px 0 #0004}
+.bigmic.on{animation:micpulse 1.2s infinite}
+.dockside{width:66px;height:66px;flex:none;border-radius:20px;background:#ffffff10;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:24px}
+.dockside span{font-size:12px;font-weight:800}
+.composer{position:static;margin-top:10px}
+.composer textarea{font-size:18px;height:54px}
+.composer .send{width:58px;font-size:22px}
+.hero .speech{font-size:16.5px}
+.lessonbtn b{font-size:20px}.lessonbtn small{font-size:14.5px}
+.tasks button{font-size:16px;min-height:52px}
+.opt2{font-size:18px;min-height:56px}
+nav,.drawer .item{font-size:17px}
+body.big .wrap,body.big .sheet,body.big .dock{zoom:1.18}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--lemon);outline-offset:2px}
+
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:#120b26f2;border-top:1px solid var(--line);backdrop-filter:blur(10px);display:flex;justify-content:center;z-index:5}
 nav .in{display:flex;max-width:560px;width:100%}
@@ -543,7 +583,7 @@ nav button.on{color:var(--lemon)}
     <div class="mbanner hidden" id="lBanner"></div>
     <div class="quick">
       <button id="lHelp">🆘 Me ajuda</button>
-      <button id="lNew">⏹ Encerrar</button>
+      <button id="lNew">⏹ Terminar</button>
       <button id="lMoreBtn">⚙️ Opções</button>
     </div>
     <div class="quick hidden" id="lMore">
@@ -554,10 +594,14 @@ nav button.on{color:var(--lemon)}
     </div>
     <div class="lchat" id="lChat"></div>
     <div class="sugs" id="lSugs"></div>
-    <div class="composer">
-      <button class="mic" id="lMic" aria-label="Falar">🎤<span>Falar</span></button>
-      <textarea id="lInput" placeholder="Ou escreva sua resposta…" rows="1"></textarea>
+    <div class="composer hidden" id="composer">
+      <textarea id="lInput" placeholder="Escreva sua resposta…" rows="1" aria-label="Escreva sua resposta"></textarea>
       <button class="send" id="lSend" aria-label="Enviar">➤</button>
+    </div>
+    <div class="dock" id="dock">
+      <button class="dockside" id="kbBtn" aria-label="Escrever">⌨️<span>Escrever</span></button>
+      <button class="bigmic" id="lMic" aria-label="Toque e fale">🎤<span>Toque e fale</span></button>
+      <button class="dockside" id="helpBtn" aria-label="Ajuda">🆘<span>Ajuda</span></button>
     </div>
     <div class="meta hidden" id="lMicHint" style="text-align:center;margin-top:8px">Toque no 🎤 do teclado do celular e fale. Depois toque em ➤.</div>
   </div>
@@ -573,6 +617,7 @@ nav button.on{color:var(--lemon)}
   <button class="item" data-go="cards"><span class="ic">🃏</span><span>Meus cards<small>Revise suas palavras</small></span></button>
   <hr>
   <button class="item" data-go="memory"><span class="ic">🧠</span><span>O que lembram de você<small>Nome, interesses e progresso</small></span></button>
+  <button class="item" id="bigTxt"><span class="ic">🔠</span><span>Letra grande<small id="bigTxtS">desligada</small></span></button>
   <button class="item" data-go="sound"><span class="ic">🔊</span><span>Testar som</span></button>
   <button class="item" id="diagBtn"><span class="ic">🩺</span><span>Testar conexão com os professores</span></button>
 </div></div>
@@ -2014,8 +2059,9 @@ function lSugs(p){
   const o=(p&&p.opts?p.opts.split('|').map(s=>s.trim()).filter(Boolean).slice(0,3):[]);
   const parts=o.map(s=>{const i=s.indexOf('=');return i>0?[s.slice(0,i).trim(),s.slice(i+1).trim()]:[s,'']});
   $('lSugs').innerHTML=parts.length?`<div class="sughead">👉 Sua vez! Toque numa resposta, fale no 🎤 ou escreva</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
+  if(parts.length)setTimeout(()=>{const dk=$('dock');if(dk&&!$('lChatWrap').classList.contains('hidden'))window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'})},120);
   $('lSugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const en=parts[+b.dataset.i][0];
-    if(/…|\.\.\./.test(en)){const base=en.replace(/\s*(…|\.\.\.)\s*$/,' ');$('lInput').value=base+(MEM.name&&/name is/i.test(base)?MEM.name:'');$('lInput').focus();toast('Complete a frase e toque em ➤');return}
+    if(/…|\.\.\./.test(en)){const base=en.replace(/\s*(…|\.\.\.)\s*$/,' ');$('lInput').value=base+(MEM.name&&/name is/i.test(base)?MEM.name:'');showKb();toast('Complete a frase e toque em ➤');return}
     say(en,lRate(),null,tVoice(),TT().pitch);lSendText(en,true)});
 }
 async function lAsk(){
@@ -2046,7 +2092,7 @@ function lSendText(txt,fromSug){
   if(/^Não (sei|entendi)/.test(txt)||(pt&&!LU.bi)||fromSug)LU.struggle=Math.min(3,LU.struggle+1);else LU.struggle=Math.max(0,LU.struggle-1);
   try{speechSynthesis.cancel()}catch(e){}
   const d=document.createElement('div');d.className='bub me';d.textContent=txt;$('lChat').appendChild(d);
-  LU.hist.push({role:'user',content:txt});$('lInput').value='';lAsk();
+  LU.hist.push({role:'user',content:txt});$('lInput').value='';$('composer').classList.add('hidden');lAsk();
   if(!/^Não (sei|entendi)/.test(txt)){progress('talk');addXP(5)}
 }
 
@@ -2060,63 +2106,107 @@ function micSheet(){
 }
 function closeMic(){try{rec&&rec.abort&&rec.abort()}catch(e){}try{MR.rec&&MR.rec.state!=='inactive'&&MR.rec.stop()}catch(e){}
   if(MR.stream){MR.stream.getTracks().forEach(t=>t.stop());MR.stream=null}MR.cancel=true;const s=$('micSheet');if(s)s.classList.add('hidden');$('lMic').classList.remove('on')}
+const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let STT_ON=false;
+try{if(typeof serverTranscribe==='function'&&location.protocol.startsWith('http'))fetch('/api/transcribe').then(r=>r.ok?r.json():{}).then(j=>{STT_ON=!!(j&&j.enabled)}).catch(()=>{})}catch(e){}
+let micTimer=null;
+function showKb(){$('composer').classList.remove('hidden');setTimeout(()=>{$('lInput').focus();$('composer').scrollIntoView({block:'end',behavior:'smooth'})},30)}
 function micView(state,text){
-  const s=micSheet();
-  const langBtns=`<div class="miclang"><button data-l="en-US" class="${micLang==='en-US'?'on':''}">🇺🇸 Falar em inglês</button><button data-l="pt-BR" class="${micLang==='pt-BR'?'on':''}">🇧🇷 Em português</button></div>`;
+  const s=micSheet();clearTimeout(micTimer);
   if(state==='guide'){
-    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🎤</div><h3>Fale pelo teclado</h3>
-      <p class="meta" style="line-height:1.55;font-size:15px">Este navegador não liberou o microfone do app. Use o ditado do próprio celular:</p>
-      <ol class="micsteps"><li>Toque em <b>Abrir teclado</b></li><li>Toque no <b>🎤 do teclado</b> (canto de baixo)</li><li>Fale sua frase e toque em <b>➤</b></li></ol>
-      <p class="meta" style="font-size:13px">Dica: abrindo o app pelo Safari ou Chrome (ou instalado na tela inicial), o 🎤 do app funciona direto.</p>
-      <div class="row"><button class="btn main" id="micKb">⌨️ Abrir teclado</button><button class="btn" id="micX">Fechar</button></div></div>`;
-    $('micKb').onclick=()=>{closeMic();$('lInput').focus()};$('micX').onclick=closeMic;return;
+    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🎤</div><h3>Vamos falar pelo teclado</h3>
+      <p class="big2">Aqui o microfone do app não foi liberado. É fácil usar o do teclado:</p>
+      <ol class="micsteps"><li>Toque no botão <b>Abrir teclado</b></li><li>No teclado, toque no <b>🎤</b> (fica embaixo)</li><li>Fale e depois toque em <b>➤ Enviar</b></li></ol>
+      <p class="meta" style="font-size:14px">Dica: se o celular perguntar, toque em <b>Permitir</b> o microfone. Funciona melhor abrindo o app pelo Safari (iPhone) ou Chrome (Android).</p>
+      <div class="row"><button class="btn main bigbtn" id="micKb">⌨️ Abrir teclado</button><button class="btn bigbtn" id="micX">Fechar</button></div></div>`;
+    $('micKb').onclick=()=>{closeMic();showKb()};$('micX').onclick=closeMic;return;
   }
-  const label={listen:'Ouvindo… pode falar 👂',rec:'Gravando… fale e toque em Parar',wait:'Entendendo o que você disse…',done:'Era isso que você quis dizer?'}[state]||'';
-  s.innerHTML=`<div class="sheet micbox"><div class="micbig ${state==='listen'||state==='rec'?'live':''}">🎤</div><h3>${label}</h3>
-    ${state!=='done'?langBtns:''}
-    <div class="mictext">${text?esc(text):'<span class="meta">Sua fala aparece aqui</span>'}</div>
-    <div class="row">${state==='rec'?'<button class="btn main" id="micStop">⏹ Parar</button>':''}${state==='listen'?'<button class="btn main" id="micStop">✅ Pronto</button>':''}
-      ${state==='done'?'<button class="btn main" id="micSend">➤ Enviar</button><button class="btn" id="micAgain">🔁 Falar de novo</button>':''}
-      <button class="btn" id="micX">Cancelar</button></div></div>`;
-  s.querySelectorAll('.miclang button').forEach(b=>b.onclick=()=>{micLang=b.dataset.l;closeMic();setTimeout(lListen,150)});
+  if(state==='perm'){
+    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🔒</div><h3>Precisamos da sua permissão</h3>
+      <p class="big2">Para ouvir você, o celular precisa liberar o microfone.</p>
+      <ol class="micsteps">${IS_IOS?'<li>Abra <b>Ajustes</b> → <b>Safari</b> → <b>Microfone</b></li><li>Escolha <b>Permitir</b></li><li>Volte aqui e toque em <b>Tentar de novo</b></li>':'<li>Toque no <b>cadeado 🔒</b> ao lado do endereço do site</li><li>Em <b>Microfone</b>, escolha <b>Permitir</b></li><li>Volte e toque em <b>Tentar de novo</b></li>'}</ol>
+      <div class="row"><button class="btn main bigbtn" id="micAgain">🔁 Tentar de novo</button><button class="btn bigbtn" id="micKb">⌨️ Usar teclado</button></div></div>`;
+    $('micAgain').onclick=()=>{closeMic();lListen()};$('micKb').onclick=()=>{closeMic();showKb()};return;
+  }
+  const head={listen:'Pode falar agora',rec:'Pode falar agora',wait:'Entendendo o que você disse…',done:'Você disse:'}[state]||'';
+  const sub={listen:'Quando terminar, é só parar de falar',rec:'Quando terminar, é só parar de falar',wait:'Só um instante',done:'Enviando…'}[state]||'';
+  s.innerHTML=`<div class="sheet micbox"><div class="micbig ${state==='listen'||state==='rec'?'live':state==='wait'?'wait':''}">${state==='wait'?'⏳':'🎤'}</div>
+    <h3 class="micHead">${head}</h3><div class="meta big2">${sub}</div>
+    <div class="mictext">${text?esc(text):(state==='done'?'<span class="meta">Não consegui ouvir. Tente de novo, mais perto do celular.</span>':'<span class="meta">Sua fala aparece aqui</span>')}</div>
+    <div class="row">${state==='listen'||state==='rec'?'<button class="btn main bigbtn" id="micStop">✅ Terminei</button>':''}
+      ${state==='done'&&text?'<button class="btn main bigbtn" id="micSend">➤ Enviar agora</button><button class="btn bigbtn" id="micFix">✏️ Corrigir</button>':''}
+      ${state==='done'&&!text?'<button class="btn main bigbtn" id="micAgain">🔁 Falar de novo</button>':''}
+      <button class="btn bigbtn" id="micX">Cancelar</button></div>
+    ${state==='listen'||state==='rec'?`<div class="miclang"><button data-l="en-US" class="${micLang==='en-US'?'on':''}">🇺🇸 Estou falando inglês</button><button data-l="pt-BR" class="${micLang==='pt-BR'?'on':''}">🇧🇷 Português</button></div>`:''}</div>`;
+  s.querySelectorAll('.miclang button').forEach(b=>b.onclick=()=>{micLang=b.dataset.l;closeMic();setTimeout(lListen,120)});
   const st=$('micStop');if(st)st.onclick=()=>{if(state==='rec'){try{MR.rec.stop()}catch(e){}}else{try{rec.stop()}catch(e){}}};
   const sd=$('micSend');if(sd)sd.onclick=()=>{closeMic();lSendText(text)};
-  const ag=$('micAgain');if(ag)ag.onclick=()=>{closeMic();setTimeout(lListen,150)};
+  const fx=$('micFix');if(fx)fx.onclick=()=>{closeMic();$('lInput').value=text;showKb()};
+  const ag=$('micAgain');if(ag)ag.onclick=()=>{closeMic();lListen()};
   $('micX').onclick=closeMic;
+  if(state==='done'&&text){const h=s.querySelector('.micHead');let n=2;micTimer=setInterval(()=>{n--;if(n<=0){clearInterval(micTimer);closeMic();lSendText(text)}else if(h)h.textContent='Você disse:'},1000);
+    s.querySelector('.meta.big2').textContent='Enviando em 2 segundos…';}
 }
-const MR={rec:null,stream:null,chunks:[],cancel:false};
-async function recordAndTranscribe(){
-  if(typeof serverTranscribe!=='function'||!window.MediaRecorder||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return false;
-  try{MR.stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return false}
-  MR.chunks=[];MR.cancel=false;
-  const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
-  try{MR.rec=type?new MediaRecorder(MR.stream,{mimeType:type}):new MediaRecorder(MR.stream)}catch(e){return false}
-  MR.rec.ondataavailable=e=>{if(e.data&&e.data.size)MR.chunks.push(e.data)};
-  MR.rec.onstop=async()=>{
-    if(MR.stream){MR.stream.getTracks().forEach(t=>t.stop());MR.stream=null}
-    if(MR.cancel)return;
-    micView('wait','');
-    try{const blob=new Blob(MR.chunks,{type:MR.rec.mimeType||'audio/webm'});const t=await serverTranscribe(blob,micLang.startsWith('pt')?'pt':'en');
-      if(t&&t.trim())micView('done',t.trim());else micView('guide')}
-    catch(e){micView('guide')}
-  };
-  MR.rec.start();micView('rec','');$('lMic').classList.add('on');
-  setTimeout(()=>{try{MR.rec&&MR.rec.state==='recording'&&MR.rec.stop()}catch(e){}},30000);
-  return true;
+const MR={rec:null,stream:null,chunks:[],cancel:false,ac:null};
+function recordAndTranscribe(){
+  if(typeof serverTranscribe!=='function'||!window.MediaRecorder||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return Promise.resolve(false);
+  micView('rec','');$('lMic').classList.add('on');
+  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}).then(stream=>{
+    MR.stream=stream;MR.chunks=[];MR.cancel=false;
+    const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+    try{MR.rec=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream)}catch(e){stream.getTracks().forEach(t=>t.stop());return false}
+    MR.rec.ondataavailable=e=>{if(e.data&&e.data.size)MR.chunks.push(e.data)};
+    MR.rec.onstop=async()=>{
+      try{MR.ac&&MR.ac.close()}catch(e){}MR.ac=null;
+      if(MR.stream){MR.stream.getTracks().forEach(t=>t.stop());MR.stream=null}
+      $('lMic').classList.remove('on');
+      if(MR.cancel)return;
+      micView('wait','');
+      try{const blob=new Blob(MR.chunks,{type:MR.rec.mimeType||'audio/webm'});
+        if(blob.size<1500){micView('done','');return}
+        const t=await serverTranscribe(blob,micLang.startsWith('pt')?'pt':'en');micView('done',(t||'').trim())}
+      catch(e){micView('guide')}
+    };
+    MR.rec.start(250);
+    // para sozinho quando a pessoa termina de falar
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;MR.ac=new AC();const src=MR.ac.createMediaStreamSource(stream);const an=MR.ac.createAnalyser();an.fftSize=1024;src.connect(an);
+      const buf=new Uint8Array(an.fftSize);let spoke=false,quietSince=0;const t0=Date.now();
+      const tick=()=>{if(!MR.rec||MR.rec.state!=='recording')return;an.getByteTimeDomainData(buf);let s=0;for(const v of buf){const x=(v-128)/128;s+=x*x}const rms=Math.sqrt(s/buf.length);
+        const now=Date.now();if(rms>0.04){spoke=true;quietSince=0}else if(spoke){quietSince=quietSince||now;if(now-quietSince>1500){try{MR.rec.stop()}catch(e){}return}}
+        if(!spoke&&now-t0>8000){try{MR.rec.stop()}catch(e){}return}
+        setTimeout(tick,100)};
+      if(MR.ac.state==='suspended')MR.ac.resume().catch(()=>{});setTimeout(tick,300);
+    }catch(e){}
+    setTimeout(()=>{try{MR.rec&&MR.rec.state==='recording'&&MR.rec.stop()}catch(e){}},25000);
+    return true;
+  }).catch(err=>{$('lMic').classList.remove('on');if(err&&/NotAllowed|Permission|Security/i.test(err.name||''))micView('perm');else micView('guide');return 'handled'});
 }
-function lListen(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR||recOk===false){recordAndTranscribe().then(ok=>{if(!ok)micView('guide')});return}
+function startSR(SR){
   try{
-    try{speechSynthesis.cancel()}catch(e){}
     rec=new SR();rec.lang=micLang;rec.interimResults=true;rec.maxAlternatives=1;rec.continuous=false;
-    let txt='';micView('listen','');
-    rec.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;txt=t;const el=document.querySelector('#micSheet .mictext');if(el)el.textContent=t};
-    rec.onerror=e=>{if(/not-allowed|service-not-allowed|audio-capture|network|language-not-supported/.test(e.error)){recOk=false;closeMic();recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}};
-    rec.onend=()=>{$('lMic').classList.remove('on');if(recOk!==false)recOk=true;if(txt.trim()){if(LU.voice){closeMic();lSendText(txt.trim())}else micView('done',txt.trim())}else if(recOk!==false&&$('micSheet')&&!$('micSheet').classList.contains('hidden'))micView('done','')};
+    let txt='',gotAny=false;micView('listen','');
+    rec.onresult=e=>{gotAny=true;let t='';for(const r of e.results)t+=r[0].transcript;txt=t;const el=document.querySelector('#micSheet .mictext');if(el)el.textContent=t};
+    rec.onerror=e=>{
+      if(/not-allowed|service-not-allowed/.test(e.error)){recOk=false;
+        if(STT_ON){closeMic();recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}else micView(e.error==='not-allowed'?'perm':'guide')}
+      else if(/audio-capture|network|language-not-supported/.test(e.error)){recOk=false;closeMic();recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}
+    };
+    rec.onend=()=>{$('lMic').classList.remove('on');if(recOk===false)return;recOk=true;const sh=$('micSheet');if(!sh||sh.classList.contains('hidden'))return;micView('done',txt.trim())};
     rec.start();$('lMic').classList.add('on');
   }catch(e){recOk=false;recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}
 }
+function lListen(){
+  try{speechSynthesis.cancel()}catch(e){}document.body.classList.remove('speaking');
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const canRec=typeof serverTranscribe==='function'&&STT_ON&&!!window.MediaRecorder&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+  // iPhone: gravação + transcrição é o caminho mais estável. Android: reconhecimento do próprio Chrome.
+  if(canRec&&(IS_IOS||!SR||recOk===false)){recordAndTranscribe().then(ok=>{if(!ok)micView('guide')});return}
+  if(SR&&recOk!==false){startSR(SR);return}
+  if(canRec){recordAndTranscribe().then(ok=>{if(!ok)micView('guide')});return}
+  micView('guide');
+}
+
 function lListenOld(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const fallback=()=>{recOk=false;$('lMicHint').classList.remove('hidden');$('lInput').focus();$('lMic').classList.remove('on')};
@@ -2131,7 +2221,9 @@ function lListenOld(){
     rec.start();$('lMic').classList.add('on');
   }catch(e){fallback()}
 }
-$('lMic').onclick=()=>{unlockAudio();lListen()};
+$('lMic').onclick=()=>{lListen();try{unlockAudio()}catch(e){}};
+$('kbBtn').onclick=()=>{const c=$('composer');if(c.classList.contains('hidden'))showKb();else c.classList.add('hidden')};
+$('helpBtn').onclick=()=>$('lHelp').click();
 
 /* ---------- setup ---------- */
 function lBanner(){
@@ -2213,6 +2305,9 @@ $('diagBtn').onclick=async()=>{
   catch(e){const s=document.createElement('div');s.className='shade';s.innerHTML=`<div class="sheet"><div class="big" style="font-size:22px">🩺 Diagnóstico</div><p style="line-height:1.5">${esc(e.friendly||'Sem conexão com o servidor.')}</p><button class="btn main" id="dgOk">Ok</button></div>`;document.body.appendChild(s);s.querySelector('#dgOk').onclick=()=>s.remove()}
 };
 $('lBi').onclick=()=>{LU.bi=!LU.bi;LU.biForced=LU.bi;$('lBi').textContent='🇧🇷🇺🇸 Bilíngue: '+(LU.bi?'sim':'não');$('lBi').classList.toggle('on',LU.bi);toast(LU.bi?'Agora o professor mistura português e inglês':'Agora a conversa é toda em inglês')};
+function applyBig(){const on=(()=>{try{return localStorage.getItem('chiclete-big')==='1'}catch(e){return false}})();document.body.classList.toggle('big',on);const s=$('bigTxtS');if(s)s.textContent=on?'ligada':'desligada'}
+$('bigTxt').onclick=()=>{let on=false;try{on=localStorage.getItem('chiclete-big')!=='1';localStorage.setItem('chiclete-big',on?'1':'0')}catch(e){}applyBig();toast(on?'Letra grande ligada':'Letra normal')};
+applyBig();
 $('lMoreBtn').onclick=()=>$('lMore').classList.toggle('hidden');
 $('lInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();lSendText($('lInput').value)}});
 $('lHelp').onclick=()=>lSendText('Não sei o que responder. Pode me ajudar?');

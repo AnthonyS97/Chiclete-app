@@ -11,6 +11,8 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
 export default async function handler(req) {
+  // GET: o app pergunta se a transcrição está ligada.
+  if (req.method === 'GET') return json({ enabled: !!process.env.OPENAI_API_KEY });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const accessCode = process.env.ACCESS_CODE;

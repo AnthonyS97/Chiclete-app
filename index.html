@@ -504,17 +504,20 @@ nav button.on{color:var(--lemon)}
   <div id="lChatWrap" class="hidden">
     <div class="mbanner hidden" id="lBanner"></div>
     <div class="quick">
+      <button id="lHelp">🆘 Me ajuda</button>
+      <button id="lNew">⏹ Encerrar</button>
+      <button id="lMoreBtn">⚙️ Opções</button>
+    </div>
+    <div class="quick hidden" id="lMore">
       <button id="lVoiceMode">🎧 Modo voz: não</button>
       <button id="lPt">🇧🇷 Tradução: sim</button>
       <button id="lSimple">🧘 Modo simples: sim</button>
-      <button id="lHelp">🆘 Me ajuda</button>
-      <button id="lNew">⏹ Encerrar</button>
     </div>
     <div class="lchat" id="lChat"></div>
     <div class="sugs" id="lSugs"></div>
     <div class="composer">
       <button class="mic" id="lMic" aria-label="Falar">🎤</button>
-      <textarea id="lInput" placeholder="Escreva ou fale em inglês…" rows="1"></textarea>
+      <textarea id="lInput" placeholder="Ou escreva sua resposta…" rows="1"></textarea>
       <button class="send" id="lSend" aria-label="Enviar">➤</button>
     </div>
     <div class="meta hidden" id="lMicHint" style="text-align:center;margin-top:8px">Toque no 🎤 do teclado do celular e fale. Depois toque em ➤.</div>
@@ -532,6 +535,7 @@ nav button.on{color:var(--lemon)}
   <hr>
   <button class="item" data-go="memory"><span class="ic">🧠</span><span>O que lembram de você<small>Nome, interesses e progresso</small></span></button>
   <button class="item" data-go="sound"><span class="ic">🔊</span><span>Testar som</span></button>
+  <button class="item" id="diagBtn"><span class="ic">🩺</span><span>Testar conexão com os professores</span></button>
 </div></div>
 
 <div class="shade hidden" id="shade">
@@ -1249,6 +1253,26 @@ document.addEventListener('click',e=>{
 $('testSound').onclick=beep;
 
 /* ===================== SERVIDOR DE IA (api/chat) ===================== */
+function friendlyError(status,info){
+  const det=((info&&info.detail)||'').toLowerCase();
+  if(info.error==='missing_api_key')return 'O app ainda não tem a chave da IA. Na Vercel, adicione ANTHROPIC_API_KEY em Settings → Environment Variables e faça Redeploy.';
+  if(status===401||info.error==='forbidden')return 'Código de acesso incorreto. Toque em Tentar de novo e digite o código certo.';
+  if(info.status===401||/invalid x-api-key|authentication/.test(det))return 'A chave da IA (ANTHROPIC_API_KEY) está inválida. Gere uma nova no console da Anthropic, atualize na Vercel e faça Redeploy.';
+  if(/credit|balance|billing/.test(det))return 'A conta da Anthropic está sem crédito. Adicione crédito em console.anthropic.com → Billing.';
+  if(info.status===404||/model/.test(det))return 'O modelo de IA configurado não foi encontrado. Me avise que eu corrijo.';
+  if(status===429)return 'Muita gente falando ao mesmo tempo. Espere alguns segundos e tente de novo.';
+  return 'Não consegui falar com o professor agora ('+(info.status||status)+'). Tente de novo em instantes.';
+}
+function askCode(){return new Promise(res=>{
+  const s=document.createElement('div');s.className='shade';s.innerHTML=`<div class="sheet"><div class="big" style="font-size:24px">🔑 Código de acesso</div>
+    <div class="meta" style="margin:6px 0 12px">O app está em teste fechado. Digite o código que você recebeu.</div>
+    <input class="inp2" id="codeIn" placeholder="ex.: chiclete2026" autocapitalize="off" autocomplete="off" style="font-size:18px;padding:14px">
+    <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="btn main" id="codeOk">Entrar</button><button class="btn" id="codeNo">Cancelar</button></div></div>`;
+  document.body.appendChild(s);const i=s.querySelector('#codeIn');setTimeout(()=>i.focus(),50);
+  const done=v=>{s.remove();res(v)};
+  s.querySelector('#codeOk').onclick=()=>done(i.value.trim());i.onkeydown=e=>{if(e.key==='Enter')done(i.value.trim())};
+  s.querySelector('#codeNo').onclick=()=>done('');
+})}
 function accessCode(){try{return localStorage.getItem('chiclete-code')||''}catch(e){return ''}}
 async function serverSample(messages,opts={}){
   if(typeof messages==='string')messages=[{role:'user',content:messages}];
@@ -1256,10 +1280,14 @@ async function serverSample(messages,opts={}){
     body:JSON.stringify({messages,quality:opts.modelTier==='complex'?'max':'fast'})});
   let r=await send();
   if(r.status===401){
-    const c=window.prompt('Este app está em teste fechado. Digite o código de acesso:');
-    if(c){try{localStorage.setItem('chiclete-code',c.trim())}catch(e){}r=await send()}
+    const c=await askCode();
+    if(c){try{localStorage.setItem('chiclete-code',c)}catch(e){}r=await send()}
   }
-  if(!r.ok){const e=new Error('http '+r.status);e.code=r.status===429?'rate_limited':r.status===401?'not_granted':'error';throw e}
+  if(!r.ok){
+    let info={};try{info=await r.json()}catch(e){}
+    const e=new Error('http '+r.status);e.code=r.status===429?'rate_limited':r.status===401?'not_granted':'error';
+    e.friendly=friendlyError(r.status,info);throw e;
+  }
   const reader=r.body.getReader(),dec=new TextDecoder();let buf='',text='';
   for(;;){
     const {value,done}=await reader.read();if(done)break;
@@ -1592,14 +1620,48 @@ function renderHero(){
     <div class="tstatus">Agora: ${esc(todayStatus())}</div>
     <div class="bond"><div class="lbl"><span>💞 Amizade: <b>${b.name}</b></span><span>${b.next?'próximo: '+b.next:'nível máximo!'}</span></div><div class="bar"><i style="width:${b.pct}%"></i></div></div>
     <div class="cta"><button class="go tfont" id="heroGo">💬 Conversar com ${t.name}</button><button class="btn" id="heroProf">Perfil</button></div>
-    <div class="switch">${Object.entries(TEACHERS).map(([k,x])=>`<button data-k="${k}" class="${k===TK?'on':''}" style="--sc:${x.color}">${avHTML(k,'happy')}<span>${x.name}<small>${k===TK?'seu professor':'trocar'}</small></span></button>`).join('')}</div>`;
-  $('hero').querySelector('.av').onclick=openProfile;$('heroProf').onclick=openProfile;
-  $('heroGo').onclick=()=>{LU.tab='talk';$('lTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.t==='talk'));
-    $('paneTalk').classList.remove('hidden');$('paneLesson').classList.add('hidden');$('paneMission').classList.add('hidden');if(L_SCEN[LU.sc][1]==='__ERRORS__')LU.sc=1;$('lStart').click()};
-  $('hero').querySelectorAll('.switch button').forEach(bt=>bt.onclick=()=>{if(bt.dataset.k===TK)return;TK=bt.dataset.k;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}
-    applyTheme();renderPick();renderHero();updateToday();unlockAudio();say(TT().hi,0.95,null,tVoice(),TT().pitch)});
+    <div class="switch">${Object.entries(TEACHERS).map(([k,x])=>`<button data-k="${k}" class="${k===TK?'on':''}" style="--sc:${x.color}">${avHTML(k,'happy')}<span>${x.name}<small>toque pra conversar</small></span></button>`).join('')}</div>`;
+  $('hero').querySelector('.av').onclick=()=>startChat(TK);$('heroProf').onclick=openProfile;
+  $('heroGo').onclick=()=>startChat(TK);
+  $('hero').querySelectorAll('.switch button').forEach(bt=>bt.onclick=()=>startChat(bt.dataset.k));
 }
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='profShade')$('profShade').classList.add('hidden')});
+
+/* ---------- apresentação imediata (sem esperar a IA) ---------- */
+function introFor(k){
+  const n=MEM.name,known=!!n&&(MEM.sessions>1||(BOND[k]||0)>0);
+  if(k==='anthony'){
+    if(n&&known)return {en:`Hey ${n}! Good to see you again. 👊 How's it going today?`,pt:`E aí, ${n}! Bom te ver de novo. Como estão as coisas hoje?`,
+      opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
+    if(n)return {en:`Hey ${n}! I'm Anthony, your English teacher. 👊 How's it going?`,pt:`E aí, ${n}! Eu sou o Anthony, seu professor de inglês. Como vai?`,
+      opts:['Hi Anthony! I\'m good. = Oi Anthony! Tô bem.','Nice to meet you! = Prazer em te conhecer!','I\'m a little nervous. = Tô um pouco nervoso(a).']};
+    return {en:"Hey! I'm Anthony, your English teacher. 👊 What's your name?",pt:'E aí! Eu sou o Anthony, seu professor de inglês. Qual é o seu nome?',
+      opts:['Hi! Nice to meet you! = Oi! Prazer!','Hello! How are you? = Olá! Como vai?','I\'m a beginner. = Eu sou iniciante.'],name:true};
+  }
+  if(n&&known)return {en:`Hi ${n}! It's me, Lua! 😊 I missed you! How are you today?`,pt:`Oi, ${n}! Sou eu, a Lua! Senti sua falta! Como você está hoje?`,
+    opts:['I\'m good, thanks! = Tô bem, obrigado(a)!','I\'m great! And you? = Tô ótimo(a)! E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
+  if(n)return {en:`Hi ${n}! I'm Lua, your English teacher! 😊 How are you today?`,pt:`Oi, ${n}! Eu sou a Lua, sua professora de inglês! Como você está hoje?`,
+    opts:['Hi Lua! I\'m good! = Oi Lua! Tô bem!','Nice to meet you! = Prazer em te conhecer!','I\'m a little nervous. = Tô um pouco nervoso(a).']};
+  return {en:"Hi! I'm Lua, your English teacher! 😊 What's your name?",pt:'Oi! Eu sou a Lua, sua professora de inglês! Qual é o seu nome?',
+    opts:['Hi Lua! Nice to meet you! = Oi Lua! Prazer!','Hello! How are you? = Olá! Como vai?','I\'m a beginner. = Eu sou iniciante.'],name:true};
+}
+function localIntro(){
+  const it=introFor(TK);
+  const raw=`EN: ${it.en}\nPT: ${it.pt}\nOPTS: ${it.opts.join(' | ')}`;
+  LU.hist=[{role:'assistant',content:raw}];
+  const row=document.createElement('div');row.className='mrow';row.innerHTML=avHTML(TK,'happy');
+  const d=document.createElement('div');d.className='bub them';row.appendChild(d);$('lChat').appendChild(row);
+  const p=lParse(raw);d._final=true;lRender(d,p);lSugs(p);setMood('happy');
+  $('lInput').placeholder=it.name?'Ou escreva: My name is …':'Ou escreva sua resposta…';
+  say(it.en,lRate(),()=>{if(LU.voice&&!LU.busy)lListen()},tVoice(),TT().pitch);
+}
+function startChat(k){
+  if(k&&k!==TK){TK=k;try{localStorage.setItem('chiclete-teacher',TK)}catch(e){}}
+  LU.tab='talk';$('lTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.t==='talk'));
+  $('paneTalk').classList.remove('hidden');$('paneLesson').classList.add('hidden');$('paneMission').classList.add('hidden');
+  if(L_SCEN[LU.sc][1]==='__ERRORS__')LU.sc=1;
+  applyTheme();$('lStart').click();
+}
 function openProfile(){
   const t=TT(),b=bondInfo();
   $('prof').style.setProperty('--tc',t.color);
@@ -1665,6 +1727,7 @@ MEM: (only when you learn a NEW lasting fact about the student, e.g. "name=Ana" 
 ERR: (only if there was a FIX: the mistake category in Portuguese, 2-4 words, e.g. "verbo to be", "passado irregular", "preposições", "ordem das palavras". Omit otherwise.)
 METHOD: (only if this message explains or teaches something: the exact name of the toolbox method you used, e.g. "rima/chiclete". Omit otherwise.)${extra||''}
 Keep EN short (1 to 3 sentences) so the conversation flows fast, and usually end with a question.
+Be receptive and warm like a friend: ALWAYS react first to what the student just said (with genuine interest or empathy), then ask ONE simple follow-up question. Never open with a correction or a lesson, never ask two questions at once, and never leave the student unsure about what to answer.
 Learning rules (very important):
 - Correct at most ONE thing per message: the most important mistake. Let small slips go. Never use NATURAL and FIX in the same message for beginners.
 - Introduce at most ONE new word per message, and REUSE the words from earlier messages so they stick (repetition is how the student learns).
@@ -1768,7 +1831,8 @@ let LQ='fast';try{LQ=localStorage.getItem('chiclete-lua-q')||'fast'}catch(e){}
 function lMessages(){
   const open=LU.mode==='lesson'?'[Start the lesson: step 1.]':LU.mode==='mission'?'[Start the mission: open the scene in character.]':
     `[Start the conversation: greet the student${MEM.name?' by name':''}${MEM.sessions?' like someone you already know':''}${MEM.lastSum&&MEM.lastSum.words&&MEM.lastSum.words.length?`, do a 1-question quick recap using one of the words from last time (${MEM.lastSum.words.slice(0,3).join(', ')}),`:''} and open the topic.]`;
-  const out=[{role:'user',content:lSystem()+'\n\n'+open}];
+  const opener=LU.hist.length&&LU.hist[0].role==='assistant'?'[You already opened this conversation with the first message below (your self-introduction). Continue naturally from the student\'s reply; if they told you their name, use it and remember it with a MEM line.]':open;
+  const out=[{role:'user',content:lSystem()+'\n\n'+opener}];
   LU.hist.forEach(m=>{const last=out[out.length-1];if(last.role===m.role)last.content+='\n'+m.content;else out.push({role:m.role,content:m.content})});
   if(out[out.length-1].role!=='user')out.push({role:'user',content:'[continue]'});
   return out;
@@ -1792,7 +1856,7 @@ function applyMeta(p){
 function lSugs(p){
   const o=(p&&p.opts?p.opts.split('|').map(s=>s.trim()).filter(Boolean).slice(0,3):[]);
   const parts=o.map(s=>{const i=s.indexOf('=');return i>0?[s.slice(0,i).trim(),s.slice(i+1).trim()]:[s,'']});
-  $('lSugs').innerHTML=parts.length?`<div class="sughead">Não sabe o que dizer? Toque numa resposta:</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
+  $('lSugs').innerHTML=parts.length?`<div class="sughead">👇 Toque pra responder (ou escreva/fale embaixo)</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
   $('lSugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const en=parts[+b.dataset.i][0];say(en,lRate(),null,tVoice(),TT().pitch);lSendText(en,true)});
 }
 async function lAsk(){
@@ -1811,7 +1875,9 @@ async function lAsk(){
     setMood(mood);row.querySelector('.av').innerHTML=avatarSVG(TK,mood);addBond(1);
   }catch(e){
     const c=e&&e.code;d.className='bub tip';
-    d.textContent=c==='rate_limited'?(TT().name+' precisa de uma pausa. Tente de novo em alguns segundos.'):c==='not_granted'?'A professora virtual não foi autorizada nesta visualização.':'Ops, não consegui responder agora. Tente de novo.';
+    const msg=e&&e.friendly?e.friendly:c==='rate_limited'?(TT().name+' precisa de uma pausa. Tente de novo em alguns segundos.'):c==='not_granted'?'O código de acesso não foi aceito.':'Não consegui falar com '+TT().name+' agora. Verifique sua internet e tente de novo.';
+    d.innerHTML=`⚠️ ${esc(msg)}<div class="row" style="justify-content:center;margin-top:8px"><button class="btn main" data-retry>🔄 Tentar de novo</button></div>`;
+    d.querySelector('[data-retry]').onclick=()=>{row.remove();lAsk()};
   }
   LU.busy=false;$('lSend').disabled=false;d.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -1911,11 +1977,16 @@ $('lStart').onclick=()=>{
   $('lChat').innerHTML='';$('lSetup').classList.add('hidden');$('lChatWrap').classList.remove('hidden');
   $('chatHead').classList.remove('hidden');$('chAv').innerHTML=avatarSVG(TK,'happy');$('chAv').style.setProperty('--tg',TT().tg);$('chAv').onclick=openProfile;$('chName').innerHTML='<span class="tfont">Teacher <b style="color:'+TT().color+'">'+TT().name+'</b></span>';$('chTag').textContent=TT().tag;
   applyTheme();
-  const label=LU.mode==='talk'?L_SCEN[LU.sc][0]:LU.mode==='lesson'?'Aula':'Missão';
-  const n=document.createElement('div');n.className='bub tip';n.textContent=`${L_LEVELS[LU.lv][0]} · ${label} · toque num balão pra ouvir de novo`;$('lChat').appendChild(n);
-  lBanner();lAsk();window.scrollTo(0,0);
+  $('lMore').classList.add('hidden');lBanner();window.scrollTo(0,0);
+  if(LU.mode==='talk'&&L_SCEN[LU.sc][1]!=='__ERRORS__')localIntro();else lAsk();
 };
 $('lSend').onclick=()=>lSendText($('lInput').value);
+$('diagBtn').onclick=async()=>{
+  $('drawer').classList.add('hidden');toast('Testando conexão…');
+  try{const r=await serverSample([{role:'user',content:'Reply with exactly: OK'}],{});toast(/ok/i.test(r.text)?'✅ Professores conectados!':'✅ Conectado ('+r.text.slice(0,20)+')')}
+  catch(e){const s=document.createElement('div');s.className='shade';s.innerHTML=`<div class="sheet"><div class="big" style="font-size:22px">🩺 Diagnóstico</div><p style="line-height:1.5">${esc(e.friendly||'Sem conexão com o servidor.')}</p><button class="btn main" id="dgOk">Ok</button></div>`;document.body.appendChild(s);s.querySelector('#dgOk').onclick=()=>s.remove()}
+};
+$('lMoreBtn').onclick=()=>$('lMore').classList.toggle('hidden');
 $('lInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();lSendText($('lInput').value)}});
 $('lHelp').onclick=()=>lSendText('Não sei o que responder. Pode me ajudar?');
 function closeChat(){$('chatHead').classList.add('hidden');try{speechSynthesis.cancel();rec&&rec.stop()}catch(e){};LU.hist=[];LU.voice=false;$('lVoiceMode').textContent='🎧 Modo voz: não';$('lVoiceMode').classList.remove('on');

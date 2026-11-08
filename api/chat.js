@@ -20,7 +20,8 @@ const json = (obj, status = 200) =>
 export default async function handler(req) {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // Aceita também a variável que foi cadastrada com outro nome na Vercel.
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.apikey_01WnENGgxt5xWUDfDE4nEV81;
   if (!apiKey) return json({ error: 'missing_api_key' }, 500);
 
   // Teste fechado opcional: se ACCESS_CODE estiver definido, o app pede o código.

@@ -18,10 +18,22 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
 export default async function handler(req) {
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
-
   // Aceita também a variável que foi cadastrada com outro nome na Vercel.
   const apiKey = process.env.ANTHROPIC_API_KEY || process.env.apikey_01WnENGgxt5xWUDfDE4nEV81;
+
+  // Diagnóstico: GET /api/chat diz se a chave existe e se a Anthropic a aceita (nunca mostra a chave).
+  if (req.method === 'GET') {
+    if (!apiKey) return json({ key: false });
+    let auth = 0;
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/models?limit=1', {
+        headers: { 'x-api-key': apiKey.trim(), 'anthropic-version': '2023-06-01' },
+      });
+      auth = r.status;
+    } catch { auth = -1; }
+    return json({ key: true, format: apiKey.trim().startsWith('sk-ant-') ? 'ok' : 'unexpected', auth });
+  }
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (!apiKey) return json({ error: 'missing_api_key' }, 500);
 
   // Teste fechado opcional: se ACCESS_CODE estiver definido, o app pede o código.

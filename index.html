@@ -2141,15 +2141,17 @@ try{if(typeof serverTTS==='function'&&location.protocol.startsWith('http'))fetch
 function ttsAudio(){if(!TTSAUD){TTSAUD=new Audio();TTSAUD.setAttribute('playsinline','');TTSAUD.preload='auto'}return TTSAUD}
 function unlockTTS(){try{const a=ttsAudio();if(a._unlocked)return;a._unlocked=true;a.src=silentWav();const p=a.play();p&&p.then(()=>a.pause()).catch(()=>{})}catch(e){}}
 function stopTeacherAudio(){try{const a=ttsAudio();a.pause();a.onended=null}catch(e){}document.body.classList.remove('speaking')}
+function isPt(t){t=String(t||'');return /[ãõçáéíóúâêôà]/i.test(t)||/\b(você|voce|não|nao|eu|que|pra|bora|oi|tô|tá|vamos|aula|seu|sua|uma|muito|agora|hoje|quer|dizer|tenta|aí)\b/i.test(t)}
 async function teacherSpeak(text,rate,onend){
   const clean=String(text||'').replace(/\*\*/g,'');
-  const fallback=()=>{if(/\*\*/.test(text))sayMixed(text,rate,onend,tVoice(),TT().pitch,TT().g);else say(clean,rate,onend,tVoice(),TT().pitch)};
+  // português sempre com voz brasileira; inglês sempre com voz americana
+  const fallback=()=>{if(/\*\*/.test(text)||isPt(clean))sayMixed(text,rate,onend,tVoice(),TT().pitch,TT().g);else say(clean,rate,onend,tVoice(),TT().pitch)};
   if(!TTS_ON||typeof serverTTS!=='function'){fallback();return}
   try{
     try{speechSynthesis.cancel()}catch(e){}
     const slow=rate<0.75,key=TK+'|'+(slow?'s':'n')+'|'+clean;
     let url=TTS_CACHE.get(key);
-    if(!url){url=URL.createObjectURL(await serverTTS(clean,TK,slow));TTS_CACHE.set(key,url);if(TTS_CACHE.size>60){const k=TTS_CACHE.keys().next().value;URL.revokeObjectURL(TTS_CACHE.get(k));TTS_CACHE.delete(k)}}
+    if(!url){url=URL.createObjectURL(await serverTTS(/\*\*/.test(text)?String(text):(isPt(clean)?clean:'**'+clean+'**'),TK,slow));TTS_CACHE.set(key,url);if(TTS_CACHE.size>60){const k=TTS_CACHE.keys().next().value;URL.revokeObjectURL(TTS_CACHE.get(k));TTS_CACHE.delete(k)}}
     const a=ttsAudio();a.pause();a.src=url;a.playbackRate=slow?0.85:1;
     a.onplay=()=>document.body.classList.add('speaking');
     a.onended=()=>{document.body.classList.remove('speaking');onend&&onend()};

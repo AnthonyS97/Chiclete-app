@@ -63,7 +63,16 @@ function segments(text) {
 }
 
 export default async function handler(req) {
-  if (req.method === 'GET') return json({ enabled: !!process.env.OPENAI_API_KEY });
+  if (req.method === 'GET') {
+    const enabled = !!process.env.OPENAI_API_KEY;
+    // ?check=1: confere se a OpenAI aceita a chave (nunca mostra a chave).
+    if (enabled && new URL(req.url).searchParams.get('check')) {
+      let auth = 0;
+      try { auth = (await fetch('https://api.openai.com/v1/models/gpt-4o-mini-tts', { headers: { Authorization: 'Bearer ' + process.env.OPENAI_API_KEY.trim() } })).status; } catch { auth = -1; }
+      return json({ enabled, auth });
+    }
+    return json({ enabled });
+  }
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const blocked = await guard(req);

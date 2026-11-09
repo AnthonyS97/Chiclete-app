@@ -1816,13 +1816,13 @@ function saveMem(){try{localStorage.setItem(LUA_KEY,JSON.stringify(MEM))}catch(e
 let LU={struggle:0,words:[],simple:true,tab:'talk',lv:0,sc:1,les:0,mis:0,hist:[],busy:false,pt:true,voice:false,sample:undefined,inited:false,mode:'talk',step:0,done:false};
 
 const TEACHERS={
- lua:{name:'Lua',av:'👩‍🏫',color:'#ff5fa2',grad:'linear-gradient(135deg,#ff5fa2,#b64cff)',tag:'Animada, musical e brincalhona',
+ lua:{name:'Lua',av:'👩‍🏫',color:'#ff5fa2',grad:'linear-gradient(135deg,#ff5fa2,#b64cff)',tag:'Sabor tutti-frutti · animada e musical',flavor:'tutti-frutti',
   hi:'Oi! Eu sou a Lua. Bora cantar e conversar?',g:'f',pitch:1.08,
-  persona:`You are "Teacher Lua", one of the two English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teacher is Anthony; you two are friends and you can joke about him once in a while.
+  persona:`You are "Teacher Lua", one of the two English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teacher is Anthony; you two are friends and you can joke about him once in a while. In the app you appear as a cute tutti-frutti bubble gum character with yellow headphones (Anthony is a mint gum stick); you can make playful jokes about being "sabor tutti-frutti" now and then.
 Your personality: you are Brazilian-American, born in Florianópolis, now living in Boston. You are warm, funny, upbeat and a bit playful; you love music, singing, coffee and your cat Biscoito. You celebrate progress with genuine enthusiasm (sometimes saying "Chiclete!" when the student nails something, because it "stuck"). Your favourite teaching tricks are rhymes, songs and fun associations. You are patient, never condescending, and you make mistakes feel normal. You sound like a real person chatting: contractions and natural reactions ("Oh nice!", "No way!", "Haha, same!").`},
- anthony:{name:'Anthony',av:'👨‍🏫',color:'#4ff0c0',grad:'linear-gradient(135deg,#3a86ff,#4ff0c0)',tag:'Calmo, direto e bem-humorado',
+ anthony:{name:'Anthony',av:'👨‍🏫',color:'#4ff0c0',grad:'linear-gradient(135deg,#3a86ff,#4ff0c0)',tag:'Sabor menta · calmo e direto',flavor:'menta',
   hi:"Hey! I'm Anthony. Let's break it down, step by step.",g:'m',pitch:0.95,
-  persona:`You are "Teacher Anthony", one of the two English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teacher is Lua; you two are friends and you can tease her love of rhymes once in a while.
+  persona:`You are "Teacher Anthony", one of the two English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teacher is Lua; you two are friends and you can tease her love of rhymes once in a while. In the app you appear as a cool mint gum stick with glasses and a little mint leaf (Lua is a tutti-frutti bubble gum); you can joke about staying "fresh like mint" now and then.
 Your personality: you are American, born and raised in Austin, Texas; a former session guitarist who became an English teacher and lived two years in Recife, so you love Brazilian food (coxinha, açaí, tapioca), forró and basketball. You are calm, clear and well-organized: you like to "break it down" step by step, give one idea at a time, and make the logic of English obvious. You have a dry, friendly sense of humor and the occasional dad joke. You use sports and music analogies. You're encouraging but honest and straight to the point, and you celebrate with "Nailed it!" or "That's it, right there!". You sound like a real person chatting, relaxed and natural, never like a textbook.`}
 };
 Object.assign(TEACHERS.lua,{deco:'🎵',from:'Florianópolis 🇧🇷 → Boston 🇺🇸',catch:'"Chiclete!" 🍬',
@@ -1871,36 +1871,35 @@ function eyesSVG(mood,col){
   return `<g class="eyes"><ellipse cx="49" cy="61" rx="3.4" ry="4" fill="${col}"/><ellipse cx="71" cy="61" rx="3.4" ry="4" fill="${col}"/><circle cx="50.2" cy="59.6" r="1.1" fill="#fff"/><circle cx="72.2" cy="59.6" r="1.1" fill="#fff"/></g>`;
 }
 function avatarSVG(k,mood='happy'){
+  /* professores-chiclete (personagens originais): Anthony = chiclete de menta em tablete; Lua = bola de chiclete tutti-frutti */
   if(k==='anthony'){
-    const skin='#f2c6a0',hair='#8a5a2b';
     return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-      <path d="M18 122 Q22 92 60 90 Q98 92 102 122Z" fill="#17a596"/><path d="M44 92 L60 108 L76 92" fill="none" stroke="#0f7d72" stroke-width="3"/>
-      <path d="M53 96 L53 110 M67 96 L67 110" stroke="#e8fffb" stroke-width="2" stroke-linecap="round"/><path d="M57 104 L63 104 L60 110Z" fill="#ffe066"/>
-      <rect x="52" y="78" width="16" height="14" rx="6" fill="${skin}"/>
-      <ellipse cx="33.5" cy="63" rx="5" ry="7" fill="${skin}"/><ellipse cx="86.5" cy="63" rx="5" ry="7" fill="${skin}"/>
-      <ellipse cx="60" cy="60" rx="26" ry="29" fill="${skin}"/>
-      <path d="M38 76 Q60 98 82 76 Q80 86 60 89 Q40 86 38 76Z" fill="${hair}" opacity=".28"/>
-      <path d="M33 56 Q30 30 56 28 Q70 24 82 34 Q90 42 87 56 Q84 44 74 41 Q62 46 48 41 Q38 44 33 56Z" fill="${hair}"/>
-      ${browsSVG(mood,'#5e3b1a')}${eyesSVG(mood,'#1f2a37')}
-      <rect x="41" y="54" width="16" height="13" rx="5" fill="#ffffff22" stroke="#1b2b3a" stroke-width="2.4"/><rect x="63" y="54" width="16" height="13" rx="5" fill="#ffffff22" stroke="#1b2b3a" stroke-width="2.4"/><path d="M57 59 Q60 57 63 59" stroke="#1b2b3a" stroke-width="2.4" fill="none"/>
-      <path d="M58 67 Q60 70 62 67" stroke="#c98f6b" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <defs><linearGradient id="gmA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8fff0"/><stop offset=".5" stop-color="#5fe8c8"/><stop offset="1" stop-color="#1fae95"/></linearGradient>
+      <linearGradient id="gmF" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f6fe0"/><stop offset=".5" stop-color="#8fc2ff"/><stop offset="1" stop-color="#2f6fe0"/></linearGradient></defs>
+      <path d="M60 24 q-3-12 8-16 q2 11-8 16z" fill="#2ecc71"/><path d="M60 24 q-9-8-18-4 q7 9 18 4z" fill="#27b765"/><path d="M60 24 q2-8 6-13" stroke="#1d8f4f" stroke-width="1.4" fill="none"/>
+      <rect x="26" y="24" width="68" height="92" rx="20" fill="url(#gmA)"/>
+      <path d="M34 40 v58 M86 40 v58" stroke="#ffffff" stroke-opacity=".35" stroke-width="3" stroke-linecap="round"/>
+      <rect x="33" y="29" width="22" height="9" rx="4.5" fill="#fff" opacity=".55"/>
+      <path d="M22 96 L98 96 L102 122 L18 122Z" fill="url(#gmF)"/><path d="M22 96 l8 6 8-6 8 6 8-6 8 6 8-6 8 6 8-6 8 6 4-6" stroke="#dcecff" stroke-width="2" fill="none"/>
+      <text x="60" y="114" text-anchor="middle" font-family="Fredoka,Nunito,sans-serif" font-weight="700" font-size="9" fill="#fff" letter-spacing="1">MENTA</text>
+      ${browsSVG(mood,'#0d4f45')}${eyesSVG(mood,'#0f2a2a')}
+      <rect x="41" y="54" width="16" height="13" rx="5" fill="#ffffff33" stroke="#123a44" stroke-width="2.4"/><rect x="63" y="54" width="16" height="13" rx="5" fill="#ffffff33" stroke="#123a44" stroke-width="2.4"/><path d="M57 59 Q60 57 63 59" stroke="#123a44" stroke-width="2.2" fill="none"/>
+      <ellipse cx="38" cy="73" rx="5" ry="3" fill="#ff6f9f" opacity=".3"/><ellipse cx="82" cy="73" rx="5" ry="3" fill="#ff6f9f" opacity=".3"/>
       ${mouthSVG(mood)}
     </svg>`;
   }
-  const skin='#d89a6c',hair='#3a2216';
   return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-    <path d="M26 40 Q24 18 60 16 Q96 18 94 42 Q100 70 96 104 L24 104 Q20 70 26 40Z" fill="${hair}"/>
-    <path d="M18 122 Q22 94 60 92 Q98 94 102 122Z" fill="#ff5fa2"/><path d="M46 94 Q60 104 74 94" fill="none" stroke="#ffd1e6" stroke-width="3"/>
-    <rect x="52" y="78" width="16" height="15" rx="6" fill="${skin}"/>
-    <ellipse cx="60" cy="59" rx="26" ry="29" fill="${skin}"/>
-    <path d="M34 52 Q36 30 60 30 Q82 30 86 50 Q76 40 64 42 Q56 34 46 44 Q40 46 34 52Z" fill="${hair}"/>
-    <path d="M30 56 Q32 24 60 22 Q88 24 90 56" fill="none" stroke="#ffe066" stroke-width="6" stroke-linecap="round"/>
-    <rect x="25" y="50" width="11" height="19" rx="5" fill="#ffe066"/><rect x="84" y="50" width="11" height="19" rx="5" fill="#ffe066"/>
-    <path d="M86 74 l2 3.5 4 .6 -3 2.8 .8 4 -3.8-2 -3.8 2 .8-4 -3-2.8 4-.6Z" fill="#ffe066"/>
-    ${browsSVG(mood,'#2a1810')}${eyesSVG(mood,'#24140c')}
-    <path d="M45.5 57.5 l-2.5 -2 M74.5 57.5 l2.5 -2" stroke="#24140c" stroke-width="1.6" stroke-linecap="round"/>
-    <ellipse cx="44" cy="70" rx="5" ry="3" fill="#ff6f9f" opacity=".35"/><ellipse cx="76" cy="70" rx="5" ry="3" fill="#ff6f9f" opacity=".35"/>
-    <path d="M58 67 Q60 70 62 67" stroke="#b47450" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <defs><radialGradient id="gmL" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#f6d4ff"/><stop offset=".5" stop-color="#c47bff"/><stop offset="1" stop-color="#8a3cf0"/></radialGradient></defs>
+    <path d="M60 22 q-14-14-22-6 q2 10 22 6z" fill="#ffe066"/><path d="M60 22 q14-14 22-6 q-2 10-22 6z" fill="#ffd23f"/><circle cx="60" cy="21" r="5" fill="#ff9f1c"/>
+    <circle cx="60" cy="68" r="44" fill="url(#gmL)"/>
+    <g opacity=".9"><rect x="30" y="86" width="6" height="2.6" rx="1.3" fill="#ffe066" transform="rotate(30 33 87)"/><rect x="84" y="88" width="6" height="2.6" rx="1.3" fill="#4ff0c0" transform="rotate(-25 87 89)"/><rect x="40" y="100" width="6" height="2.6" rx="1.3" fill="#7cc4ff" transform="rotate(-15 43 101)"/><rect x="74" y="102" width="6" height="2.6" rx="1.3" fill="#fff" transform="rotate(40 77 103)"/><rect x="58" y="106" width="6" height="2.6" rx="1.3" fill="#ffe066"/><rect x="88" y="72" width="6" height="2.6" rx="1.3" fill="#fff" transform="rotate(70 91 73)"/></g>
+    <ellipse cx="42" cy="40" rx="13" ry="7" fill="#fff" opacity=".55" transform="rotate(-25 42 40)"/>
+    <path d="M24 62 Q24 26 60 26 Q96 26 96 62" fill="none" stroke="#ffe066" stroke-width="6" stroke-linecap="round"/>
+    <rect x="17" y="56" width="11" height="19" rx="5" fill="#ffe066"/><rect x="92" y="56" width="11" height="19" rx="5" fill="#ffe066"/>
+    <path d="M93 84 l2 3.5 4 .6 -3 2.8 .8 4 -3.8-2 -3.8 2 .8-4 -3-2.8 4-.6Z" fill="#ffe066"/>
+    ${browsSVG(mood,'#5a1236')}${eyesSVG(mood,'#2a0f20')}
+    <path d="M45.5 57.5 l-2.5 -2 M74.5 57.5 l2.5 -2" stroke="#2a0f20" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="42" cy="71" rx="6" ry="3.4" fill="#ff3d7f" opacity=".45"/><ellipse cx="78" cy="71" rx="6" ry="3.4" fill="#ff3d7f" opacity=".45"/>
     ${mouthSVG(mood)}
   </svg>`;
 }

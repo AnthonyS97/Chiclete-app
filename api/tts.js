@@ -8,18 +8,33 @@ import { guard } from './_lib/access.js';
 
 export const config = { runtime: 'edge' };
 
+// Cada professor tem voz própria e um sotaque brasileiro regional no português.
+// O inglês é sempre americano padrão (General American) para todos.
 const PERSONA = {
   lua: {
-    voice: process.env.TTS_VOICE_LUA || 'coral',
+    voice: process.env.TTS_VOICE_LUA || 'coral', fallback: 'nova',
     tone: 'You are Lua, a warm, upbeat and playful English teacher in her early thirties. Sound like a real person smiling while she talks: natural rhythm, light enthusiasm, small natural pauses.',
+    pt: 'Speak ONLY in Brazilian Portuguese with a native paulistana accent from the city of São Paulo: urban, lively, typical São Paulo intonation and rhythm.',
   },
-  anthony: {
-    voice: process.env.TTS_VOICE_ANTHONY || 'ash',
-    tone: 'You are Anthony, a calm, friendly English teacher in his thirties, relaxed and kind with a hint of dry humor. Natural conversational pace with short pauses.',
+  charles: {
+    voice: process.env.TTS_VOICE_CHARLES || process.env.TTS_VOICE_ANTHONY || 'ash', fallback: 'echo',
+    tone: 'You are Charles, a calm, friendly English teacher in his thirties, relaxed and kind with a hint of dry humor. Natural conversational pace with short pauses.',
+    pt: 'Speak ONLY in Brazilian Portuguese with a native accent from Mato Grosso do Sul (Campo Grande): Brazilian center-west interior accent, with the retroflex "r" of the interior, calm and steady rhythm.',
+  },
+  mark: {
+    voice: process.env.TTS_VOICE_MARK || 'onyx', fallback: 'onyx',
+    tone: 'You are Mark, a patient, cozy and gentle English teacher in his forties who loves telling little stories. Warm, unhurried voice with a soft smile.',
+    pt: 'Speak ONLY in Brazilian Portuguese with a native mineiro accent from Minas Gerais (Belo Horizonte): soft, sing-song mineiro melody, relaxed rhythm and gently shortened words.',
+  },
+  zoe: {
+    voice: process.env.TTS_VOICE_ZOE || 'nova', fallback: 'shimmer',
+    tone: 'You are Zoe, an energetic, bright and motivating English teacher in her late twenties. Sunny, confident, joyful energy and a big smile in the voice.',
+    pt: 'Speak ONLY in Brazilian Portuguese with a native baiano accent from Salvador, Bahia: open vowels, musical and warm Bahian intonation, relaxed and joyful rhythm.',
   },
 };
+PERSONA.anthony = PERSONA.charles;
 const LANG = {
-  pt: 'Speak ONLY in Brazilian Portuguese with a native Brazilian accent (neutral, like São Paulo), natural Brazilian intonation and rhythm. Never sound foreign or European Portuguese.',
+  pt: 'Never sound foreign or European Portuguese; keep it natural and clear, never exaggerated or caricatured.',
   en: 'Speak ONLY in English with a native General American accent, clear and natural, slightly slower so a Brazilian beginner can follow.',
 };
 const MAX_CHARS = 700;
@@ -79,11 +94,11 @@ export default async function handler(req) {
       model: process.env.TTS_MODEL || 'gpt-4o-mini-tts',
       voice: p.voice,
       input: seg.text,
-      instructions: `${p.tone} ${LANG[seg.lang]}${slow}`,
+      instructions: `${p.tone} ${seg.lang === 'pt' ? p.pt + ' ' + LANG.pt : LANG.en}${slow}`,
       response_format: 'mp3',
     });
     if (r.status === 404 || r.status === 400) {
-      r = await call({ model: 'tts-1', voice: body.teacher === 'anthony' ? 'onyx' : 'nova', input: seg.text, response_format: 'mp3', speed: body.slow ? 0.85 : 1 });
+      r = await call({ model: 'tts-1', voice: p.fallback, input: seg.text, response_format: 'mp3', speed: body.slow ? 0.85 : 1 });
     }
     if (!r.ok) throw new Error('tts ' + r.status + ' ' + (await r.text().catch(() => '')).slice(0, 200));
     return new Uint8Array(await r.arrayBuffer());

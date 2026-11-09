@@ -287,9 +287,13 @@ textarea.inp{resize:vertical}
 
 /* ===== Identidade dos professores ===== */
 body.th-lua{background:radial-gradient(900px 520px at 85% -8%,#5a1f63 0%,transparent 60%),radial-gradient(700px 460px at -10% 35%,#3a1648 0%,transparent 60%),#1a0f2e}
-body.th-anthony{background:radial-gradient(900px 520px at 85% -8%,#0f4a5c 0%,transparent 60%),radial-gradient(700px 460px at -10% 35%,#13284f 0%,transparent 60%),#0e1626}
-body.th-anthony .tfont{font-family:'Space Grotesk',Nunito,sans-serif;letter-spacing:-.3px}
+body.th-charles{background:radial-gradient(900px 520px at 85% -8%,#0f4a5c 0%,transparent 60%),radial-gradient(700px 460px at -10% 35%,#13284f 0%,transparent 60%),#0e1626}
+body.th-charles .tfont{font-family:'Space Grotesk',Nunito,sans-serif;letter-spacing:-.3px}
 body.th-lua .tfont{font-family:Fredoka,Nunito,sans-serif}
+body.th-mark{background:radial-gradient(900px 520px at 85% -8%,#5c3512 0%,transparent 60%),radial-gradient(700px 460px at -10% 35%,#3d2410 0%,transparent 60%),#1c130c}
+body.th-mark .tfont{font-family:Fredoka,Nunito,sans-serif}
+body.th-zoe{background:radial-gradient(900px 520px at 85% -8%,#6b3a10 0%,transparent 60%),radial-gradient(700px 460px at -10% 35%,#0f4f56 0%,transparent 60%),#1a1410}
+body.th-zoe .tfont{font-family:Fredoka,Nunito,sans-serif}
 .av{display:block;border-radius:50%;overflow:hidden;background:var(--tg,linear-gradient(135deg,#ff5fa2,#b64cff));flex:none}
 .av svg{display:block;width:100%;height:100%}
 .av .eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
@@ -317,7 +321,9 @@ body.speaking .av-live .m-closed{animation:talk2 .22s infinite alternate}
 .hero .cta{display:flex;gap:8px;margin-top:14px}
 .hero .cta .go{flex:1;padding:14px;border-radius:16px;font-weight:800;font-size:16px;background:var(--tc);color:#160f2b;box-shadow:0 6px 0 #0004}
 .hero .cta .go:active{transform:translateY(3px);box-shadow:0 3px 0 #0004}
-.switch{display:flex;gap:8px;margin-top:12px}
+.switch{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.switch button{flex-direction:column;text-align:center!important;gap:4px!important;padding:8px 4px!important}.switch button .av{width:44px;height:44px}.switch button small{display:block;font-size:10.5px;opacity:.8}
+.wquad{gap:0}.wquad .av{width:74px!important;height:74px!important;margin:0 -6px}
 .switch button{flex:1;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:14px;background:#ffffff0c;border:2px solid transparent;font-weight:800;font-size:13.5px;text-align:left}
 .switch button.on{border-color:var(--sc);background:#ffffff14}
 .switch .av{width:34px;height:34px}
@@ -1790,8 +1796,8 @@ function onbRender(){
     html+=`<div class="welcome2">${logoSVG(40)}
       ${chicoHero('hi','happy',150)}
       <h1 class="wtitle">Aprenda inglês conversando, no seu ritmo.</h1>
-      <p class="wsub">Seus professores Lua e Anthony te guiam em português, passo a passo, com músicas que grudam na cabeça.</p>
-      <div class="wduo">${avHTML('lua','happy','av-live')}${avHTML('anthony','happy','av-live')}</div>
+      <p class="wsub">Seus professores Lua, Charles, Mark e Zoe te guiam em português, passo a passo, com músicas que grudam na cabeça.</p>
+      <div class="wduo wquad">${TEACHER_ORDER.map(k=>avHTML(k,'happy','av-live')).join('')}</div>
       <ul class="wlist"><li>🗣️ Converse falando ou tocando nas respostas</li><li>📘 Aulas curtas de 5 minutos</li><li>🎵 Músicas originais pra fixar</li></ul>
       <button class="btn main bigbtn" id="obGo" style="width:100%">▶ Descobrir meu nível de inglês</button>
       <div class="meta" style="text-align:center;margin-top:10px">7 perguntas rápidas · leva 2 minutos · é grátis</div>
@@ -1941,32 +1947,72 @@ function saveMem(){try{localStorage.setItem(LUA_KEY,JSON.stringify(MEM))}catch(e
 
 let LU={struggle:0,words:[],simple:true,tab:'talk',lv:0,sc:1,les:0,mis:0,hist:[],busy:false,pt:true,voice:false,sample:undefined,inited:false,mode:'talk',step:0,done:false};
 
+const TEACHER_ORDER=['lua','charles','mark','zoe'];
 const TEACHERS={
- lua:{name:'Lua',av:'👩‍🏫',color:'#ff5fa2',grad:'linear-gradient(135deg,#ff5fa2,#b64cff)',tag:'Sabor tutti-frutti · animada e musical',flavor:'tutti-frutti',
-  hi:'Oi! Eu sou a Lua. Bora cantar e conversar?',g:'f',pitch:1.08,
-  persona:`You are "Teacher Lua", one of the two English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teacher is Anthony; you two are friends and you can joke about him once in a while. In the app you appear as a cute tutti-frutti bubble gum character with yellow headphones (Anthony is a mint gum stick); you can make playful jokes about being "sabor tutti-frutti" now and then.
-Your personality: you are Brazilian-American, born in Florianópolis, now living in Boston. You are warm, funny, upbeat and a bit playful; you love music, singing, coffee and your cat Biscoito. You celebrate progress with genuine enthusiasm (sometimes saying "Chiclete!" when the student nails something, because it "stuck"). Your favourite teaching tricks are rhymes, songs and fun associations. You are patient, never condescending, and you make mistakes feel normal. You sound like a real person chatting: contractions and natural reactions ("Oh nice!", "No way!", "Haha, same!").`},
- anthony:{name:'Anthony',av:'👨‍🏫',color:'#4ff0c0',grad:'linear-gradient(135deg,#3a86ff,#4ff0c0)',tag:'Sabor menta · calmo e direto',flavor:'menta',
-  hi:"Hey! I'm Anthony. Let's break it down, step by step.",g:'m',pitch:0.95,
-  persona:`You are "Teacher Anthony", one of the two English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teacher is Lua; you two are friends and you can tease her love of rhymes once in a while. In the app you appear as a cool mint gum stick with glasses and a little mint leaf (Lua is a tutti-frutti bubble gum); you can joke about staying "fresh like mint" now and then.
-Your personality: you are American, born and raised in Austin, Texas; a former session guitarist who became an English teacher and lived two years in Recife, so you love Brazilian food (coxinha, açaí, tapioca), forró and basketball. You are calm, clear and well-organized: you like to "break it down" step by step, give one idea at a time, and make the logic of English obvious. You have a dry, friendly sense of humor and the occasional dad joke. You use sports and music analogies. You're encouraging but honest and straight to the point, and you celebrate with "Nailed it!" or "That's it, right there!". You sound like a real person chatting, relaxed and natural, never like a textbook.`}
-};
-Object.assign(TEACHERS.lua,{deco:'🎵',from:'Florianópolis 🇧🇷 → Boston 🇺🇸',catch:'"Chiclete!" 🍬',
-  bio:'Cresceu cantando na praia em Floripa e há 6 anos mora em Boston. Acredita que tudo gruda melhor com música.',
+ lua:{name:'Lua',av:'👩‍🏫',color:'#ff5fa2',grad:'linear-gradient(135deg,#ff5fa2,#b64cff)',tg:'linear-gradient(150deg,#ff7ab8,#a64dff)',
+  tag:'Paulistana · tutti-frutti · animada e musical',flavor:'tutti-frutti',accent:'paulistana',g:'f',pitch:1.08,
+  hi:'Oi! Eu sou a Lua. Bora cantar e conversar?',
+  art:'a',prof:'sua professora',saud:'Oi',em:'😊',start:'Começa assim',go:'Tenta aí!',
+  gum:'a cute lilac tutti-frutti bubble gum ball with colorful sprinkles and yellow headphones',
+  bioEn:`you are paulistana, born and raised in São Paulo (Vila Madalena), and you've lived in Boston for 6 years. You are warm, funny, upbeat and a bit playful; you love music, singing, coffee and your cat Biscoito. You celebrate progress with genuine enthusiasm (sometimes saying "Chiclete!" when the student nails something, because it "stuck"). Your favourite teaching tricks are rhymes, songs and fun associations. You make mistakes feel normal. In Portuguese you talk like a paulistana, using now and then expressions like "meu", "mano", "nossa", "tipo", "da hora".`,
+  deco:'🎵',from:'São Paulo, SP 🇧🇷 → Boston 🇺🇸',catch:'"Chiclete!" 🍬',
+  bio:'Paulistana da Vila Madalena, mora em Boston há 6 anos. Acredita que tudo gruda melhor com música.',
   style:'Rimas, músicas, associações divertidas e muita comemoração',fav:'Hello, Hello! (claro 😄)',
   facts:['Tem uma gata chamada Biscoito que adora deitar no teclado','Canta no chuveiro em inglês e português','Toma no mínimo 3 cafés por dia'],
-  status:['🎤 ensaiando uma música nova','☕ no terceiro café do dia','🐱 tirando o Biscoito de cima do teclado','🌊 com saudade da praia de Floripa','🎧 montando uma playlist pra você','📝 escrevendo uma rima nova','🍫 comendo brigadeiro escondido'],
-  greet:{m:'Bom dia, {n}! ☀️ Já tomou seu café? Bora aquecer a voz?',a:'Oi, {n}! 🎶 Tô com uma música na cabeça… vamos conversar?',e:'Boa noite, {n}! 🌙 Uma conversinha antes de dormir?',
-    w:'Lembra do "{w}"? Hoje eu quero ouvir você usar! 😄',s:'🔥 {s} dias seguidos! Tô muito orgulhosa de você!',f:'Oi! Eu sou a Lua 💖 Prometo que aqui ninguém passa vergonha. Bora?'}});
-Object.assign(TEACHERS.anthony,{deco:'🎸',from:'Austin, Texas 🇺🇸 (2 anos em Recife 🇧🇷)',catch:'"Nailed it!" 🎸',
-  bio:'Tocou guitarra em estúdio por 8 anos antes de virar professor. Morou em Recife e voltou fã de coxinha e forró.',
+  status:['🎤 ensaiando uma música nova','☕ no terceiro café do dia','🐱 tirando o Biscoito de cima do teclado','🌆 com saudade da Paulista','🎧 montando uma playlist pra você','📝 escrevendo uma rima nova','🍫 comendo brigadeiro escondido'],
+  greet:{m:'Bom dia, {n}! ☀️ Já tomou seu café? Bora aquecer a voz?',a:'Oi, {n}! 🎶 Tô com uma música na cabeça, meu… vamos conversar?',e:'Boa noite, {n}! 🌙 Uma conversinha antes de dormir?',
+    w:'Lembra do "{w}"? Hoje eu quero ouvir você usar! 😄',s:'🔥 {s} dias seguidos! Tô muito orgulhosa de você!',f:'Oi! Eu sou a Lua 💖 Prometo que aqui ninguém passa vergonha. Bora?'},
+  alive:['Ei! 😄 Bora treinar 5 minutinhos comigo?','Tô com uma música na cabeça… 🎶 "Hello, hello, how are you today?" Grudou!','Sabia que chiclete em inglês é **bubble gum**? 🍬','O Biscoito deitou no meu teclado de novo… 🐱 Enquanto isso, bora praticar?','Nossa, hoje eu acordei animada! Vamos aprender uma frase nova? ✨','Psiu! Errar faz parte. Eu tô aqui pra te ajudar, sem julgamento. 💖']},
+ charles:{name:'Charles',av:'👨‍🏫',color:'#4ff0c0',grad:'linear-gradient(135deg,#3a86ff,#4ff0c0)',tg:'linear-gradient(150deg,#2f80ff,#35e0c0)',
+  tag:'Sul-mato-grossense · menta · calmo e direto',flavor:'menta',accent:'sul-mato-grossense',g:'m',pitch:0.95,
+  hi:"Hey! I'm Charles. Let's break it down, step by step.",
+  art:'o',prof:'seu professor',saud:'E aí',em:'👊',start:'Primeira jogada',go:'Manda aí!',
+  gum:'a cool mint gum stick with glasses and a little mint leaf on top',
+  bioEn:`you are from Campo Grande, Mato Grosso do Sul; you spent 5 years in Austin, Texas, playing guitar in a studio band before becoming an English teacher. You love tereré, sobá, the Pantanal, country and sertanejo music and basketball. You are calm, clear and well-organized: you like to "break it down" step by step, give one idea at a time, and make the logic of English obvious. Dry, friendly humor and the occasional dad joke; sports and music analogies; encouraging but honest and straight to the point; you celebrate with "Nailed it!". In Portuguese you talk like a sul-mato-grossense from the interior, using now and then expressions like "bão?", "tchê" (a little, from the border), "é nóis", "de boa".`,
+  deco:'🎸',from:'Campo Grande, MS 🇧🇷 (5 anos no Texas 🇺🇸)',catch:'"Nailed it!" 🎸',
+  bio:'Nasceu em Campo Grande, tocou guitarra em estúdio no Texas por 5 anos e voltou professor. Não larga o tereré.',
   style:'Passo a passo, lógica clara e analogias com esporte e música',fav:'Turn Left, Turn Right',
-  facts:['Joga basquete todo domingo','Diz que o açaí de Recife é imbatível','Explica gramática como se fosse uma jogada ensaiada'],
-  status:['🎸 afinando o violão','🏀 voltando do basquete','🥟 com saudade de uma coxinha de Recife','☕ preparando um cold brew','📚 lendo sobre a origem das palavras','🎶 ouvindo forró pra matar a saudade','🚴 voltando de um passeio de bike'],
-  greet:{m:'Good morning, {n}! ☕ Pronto pra mais um round?',a:"Hey {n}! Let's break it down hoje?",e:'Boa noite, {n}. 🎸 Bora fechar o dia com um papo leve?',
-    w:'Ontem você aprendeu "{w}". Hoje a gente coloca isso em jogo. 🏀',s:"{s} dias seguidos. That's how champions train. 🏆",f:"Hey! I'm Anthony. Calma: aqui a gente vai passo a passo. 👊"}});
-TEACHERS.lua.tg='linear-gradient(150deg,#ff7ab8,#a64dff)';TEACHERS.anthony.tg='linear-gradient(150deg,#2f80ff,#35e0c0)';
-let TK='lua';try{TK=localStorage.getItem('chiclete-teacher')||'lua'}catch(e){}
+  facts:['Toma tereré todo dia, até no inverno','Joga basquete todo domingo','Explica gramática como se fosse uma jogada ensaiada'],
+  status:['🎸 afinando o violão','🧉 tomando um tereré gelado','🏀 voltando do basquete','🍜 com vontade de um sobá','🐊 vendo fotos do Pantanal','📚 lendo sobre a origem das palavras','🚴 voltando de um passeio de bike'],
+  greet:{m:'Bom dia, {n}! 🧉 Pronto pra mais um round?',a:"E aí, {n}, bão? Let's break it down hoje?",e:'Boa noite, {n}. 🎸 Bora fechar o dia com um papo leve?',
+    w:'Ontem você aprendeu "{w}". Hoje a gente coloca isso em jogo. 🏀',s:"{s} dias seguidos. That's how champions train. 🏆",f:"E aí! Eu sou o Charles. Calma: aqui a gente vai passo a passo. 👊"},
+  alive:['E aí, bão? 👊 Uma aula rápida e pronto, combinado?','Tô afinando o violão aqui… 🎸 Bora praticar enquanto isso?','Dica do dia: americano fala **gonna** no lugar de "going to". Relax! 😄','Passo a passo, sem pressa. **Let\'s go!**','Tereré na mão e inglês na cabeça. 🧉 Bora?','Sabe o que funciona? Um pouquinho todo dia. **Consistency!** 💪']},
+ mark:{name:'Mark',av:'👨‍🏫',color:'#ffb35c',grad:'linear-gradient(135deg,#ff9f43,#ffd166)',tg:'linear-gradient(150deg,#e07a2e,#ffcc66)',
+  tag:'Mineiro · doce de leite · paciente e acolhedor',flavor:'doce de leite',accent:'mineiro',g:'m',pitch:0.9,
+  hi:"Hi there! I'm Mark. No rush, we'll go nice and easy.",
+  art:'o',prof:'seu professor',saud:'Ô',em:'☕',start:'A gente começa com',go:'Sem pressa, tá?',
+  gum:'a cozy square doce-de-leite (caramel) pillow gum with a knit flat cap and a cup of coffee',
+  bioEn:`you are mineiro, born in Belo Horizonte, Minas Gerais; you taught English for years in a small town in Ohio and came back to Minas. You are the most patient teacher: gentle, cozy and reassuring, you never rush, you love telling tiny stories and real-life examples, and you're great with beginners and older students. You love pão de queijo, coffee, doce de leite and fishing. You explain slowly, repeat with kindness and celebrate small wins ("Uai, que beleza!"). In Portuguese you talk like a mineiro, using now and then expressions like "uai", "trem", "sô", "cê", "nó!", "bão demais".`,
+  deco:'☕',from:'Belo Horizonte, MG 🇧🇷 (anos em Ohio 🇺🇸)',catch:'"Uai, que beleza!" ☕',
+  bio:'Mineiro de BH, deu aula em Ohio por anos e voltou pra Minas. Explica com calma e sempre com uma historinha.',
+  style:'Bem devagar, com histórias do dia a dia e muita paciência',fav:'Please and Thank You',
+  facts:['Faz o melhor pão de queijo da família','Pesca aos domingos e conta histórias de pescador','Diz que todo erro é "um trem normal"'],
+  status:['☕ passando um café fresquinho','🧀 tirando pão de queijo do forno','🎣 voltando da pescaria','📖 lendo um livro na varanda','🌄 vendo o pôr do sol nas montanhas','🍮 comendo doce de leite de colher','🪕 ouvindo uma moda de viola'],
+  greet:{m:'Bom dia, {n}! ☕ O café tá passado. Bora com calma?',a:'Ô {n}, tudo bão? Vamos prosear um tiquinho em inglês?',e:'Boa noite, {n}. 🌙 Uma prosinha tranquila antes de deitar?',
+    w:'Uai, lembra do "{w}"? Hoje cê vai usar ele bonitinho. 😊',s:'{s} dias seguidos, sô! Que beleza! 🏆',f:'Ô, tudo bão? Eu sou o Mark. Aqui é sem pressa, tá? ☕'},
+  alive:['Ô, tudo bão? ☕ Bora treinar um tiquinho?','Tirei um pão de queijo do forno agora… 🧀 E você, bora praticar?','Uai, sabia que **cheese bread** é pão de queijo? Nó, que trem bom! 😄','Sem pressa, viu? Um passinho de cada vez. 🐢','Errou? Uai, é um trem normal! É assim que aprende. 😊','Que tal uma frase nova hoje? Bem devagarinho. ✨']},
+ zoe:{name:'Zoe',av:'👩‍🏫',color:'#ffd23f',grad:'linear-gradient(135deg,#ff8c42,#ffd23f)',tg:'linear-gradient(150deg,#ff6b3d,#ffcf3f)',
+  tag:'Baiana · coco · energia e desafios',flavor:'coco',accent:'baiana',g:'f',pitch:1.12,
+  hi:"Hey hey! I'm Zoe! Ready for a challenge?",
+  art:'a',prof:'sua professora',saud:'Oxe, oi',em:'🔥',start:'Desafio',go:'Bora, você consegue!',
+  gum:'a round white coconut gum with colorful Bonfim ribbons tied in her hair and a little flower',
+  bioEn:`you are baiana, born in Salvador, Bahia; you lived in Miami for 4 years working in tourism and as a dance teacher. You are the high-energy coach: bright, confident and motivating, you love quick challenges, real conversations and modern American slang, and you push the student with joy ("Bora, você consegue!"). You love axé, samba-reggae, the beach, acarajé and dancing. In Portuguese you talk like a baiana, using now and then expressions like "oxe", "oxente", "massa", "barril", "véi", "painho/mainha" (affectionately).`,
+  deco:'🌴',from:'Salvador, BA 🇧🇷 → Miami 🇺🇸',catch:'"Massa demais!" 🔥',
+  bio:'Baiana de Salvador, morou 4 anos em Miami trabalhando com turismo e dança. Adora desafio e conversa de verdade.',
+  style:'Desafios rápidos, conversa real e gírias americanas do dia a dia',fav:'Where Are You From?',
+  facts:['Dança axé enquanto corrige exercícios','Não vive sem uma praia no fim de semana','Coleciona fitinhas do Bonfim de todas as cores'],
+  status:['💃 dançando enquanto prepara a aula','🏖️ voltando da praia','🌶️ comendo um acarajé','🎶 ouvindo samba-reggae','🔥 criando um desafio novo pra você','🌅 vendo o pôr do sol no Farol da Barra','📱 aprendendo gírias novas de Miami'],
+  greet:{m:'Bom dia, {n}! ☀️ Oxe, já acordou? Bora com energia!',a:'E aí, {n}! 🔥 Tô com um desafio massa pra você!',e:'Boa noite, {n}! 🌙 Um desafiozinho antes de dormir?',
+    w:'Lembra do "{w}"? Hoje é desafio: usar ele numa frase! 💪',s:'{s} dias seguidos! Oxe, que barril! 🔥',f:'Oxe, oi! Eu sou a Zoe! 🌴 Aqui é energia lá em cima. Bora?'},
+  alive:['Oxe, bora um desafio rapidinho? 🔥','Tô dançando aqui… 💃 Bora mexer esse inglês também?','Gíria do dia: **That\'s awesome!** = Que massa! 😄','Você consegue! Uma frase nova hoje? **Let\'s go!** 💪','Saudade da praia… 🏖️ Bora praticar enquanto isso?','Errar é massa: significa que você tá tentando! 🌴']}
+};
+function teacherPersona(k){const t=TEACHERS[k],others=TEACHER_ORDER.filter(x=>x!==k).map(x=>TEACHERS[x].name);
+  return `You are "Teacher ${t.name}", one of the four English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teachers are ${others.slice(0,-1).join(', ')} and ${others[others.length-1]}; you are all friends and you can joke about them once in a while. In the app you appear as ${t.gum}; you can make playful jokes about being "sabor ${t.flavor}" now and then.
+Your personality: ${t.bioEn}
+Use your regional expressions lightly and naturally (at most one per message, never a caricature), and always keep Portuguese clear for any Brazilian. Your ENGLISH is always standard American English. You sound like a real person chatting: contractions and natural reactions, never like a textbook.`}
+TEACHER_ORDER.forEach(k=>{TEACHERS[k].persona=teacherPersona(k)});
+
+let TK='lua';try{TK=localStorage.getItem('chiclete-teacher')||'lua';if(TK==='anthony'){TK='charles';localStorage.setItem('chiclete-teacher',TK)}}catch(e){}
 if(!TEACHERS[TK])TK='lua';
 const TT=()=>TEACHERS[TK];
 const tVoice=()=>TT().g==='m'?(voiceM||voice):(voiceF||voice);
@@ -1997,8 +2043,40 @@ function eyesSVG(mood,col){
   return `<g class="eyes"><ellipse cx="49" cy="61" rx="3.4" ry="4" fill="${col}"/><ellipse cx="71" cy="61" rx="3.4" ry="4" fill="${col}"/><circle cx="50.2" cy="59.6" r="1.1" fill="#fff"/><circle cx="72.2" cy="59.6" r="1.1" fill="#fff"/></g>`;
 }
 function avatarSVG(k,mood='happy'){
-  /* professores-chiclete (personagens originais): Anthony = chiclete de menta em tablete; Lua = bola de chiclete tutti-frutti */
-  if(k==='anthony'){
+  /* professores-chiclete (personagens originais): Lua tutti-frutti, Charles menta, Mark doce de leite, Zoe coco */
+  if(k==='mark'){
+    return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="gmM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe2b0"/><stop offset=".5" stop-color="#f0a85a"/><stop offset="1" stop-color="#c06d2c"/></linearGradient></defs>
+      <path d="M22 44 Q20 30 34 28 L86 28 Q100 30 98 44 L98 100 Q98 116 84 116 L36 116 Q22 116 22 100Z" fill="url(#gmM)"/>
+      <path d="M28 40 Q60 34 92 40" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="38" cy="48" rx="8" ry="4" fill="#fff" opacity=".45" transform="rotate(-20 38 48)"/>
+      <path d="M24 34 Q26 16 60 15 Q94 16 96 34 Q78 28 60 29 Q42 28 24 34Z" fill="#5b6b3a"/>
+      <path d="M22 34 Q60 24 104 36 Q100 41 92 40 Q60 32 26 39Z" fill="#46542c"/><circle cx="60" cy="16" r="3" fill="#46542c"/>
+      ${browsSVG(mood,'#5a3311')}${eyesSVG(mood,'#2b1708')}
+      <ellipse cx="40" cy="72" rx="6" ry="3.4" fill="#ff6f6f" opacity=".35"/><ellipse cx="80" cy="72" rx="6" ry="3.4" fill="#ff6f6f" opacity=".35"/>
+      ${mouthSVG(mood)}
+      <g transform="translate(86 92)"><path d="M0 4 h18 v10 q0 8 -9 8 q-9 0 -9-8z" fill="#fff"/><path d="M18 7 q7 0 6 6 q-1 4 -6 4" stroke="#fff" stroke-width="3" fill="none"/><rect x="2" y="5" width="14" height="3" fill="#7a4a24"/><path d="M5 -3 q-3 -4 0 -7 M11 -3 q-3 -4 0 -7" stroke="#ffffffaa" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>
+    </svg>`;
+  }
+  if(k==='zoe'){
+    return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs><radialGradient id="gmZ" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#fbeedd"/><stop offset="1" stop-color="#e2c7a4"/></radialGradient></defs>
+      <circle cx="60" cy="68" r="43" fill="url(#gmZ)"/>
+      <g fill="#a87b4f" opacity=".55"><circle cx="34" cy="86" r="1.6"/><circle cx="44" cy="98" r="1.3"/><circle cx="82" cy="94" r="1.6"/><circle cx="90" cy="80" r="1.2"/><circle cx="70" cy="104" r="1.4"/><circle cx="28" cy="70" r="1.1"/><circle cx="94" cy="62" r="1.3"/></g>
+      <ellipse cx="42" cy="41" rx="12" ry="6.5" fill="#fff" opacity=".8" transform="rotate(-25 42 41)"/>
+      <path d="M22 50 Q60 18 98 50" stroke="#ff8c42" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M22 50 Q60 18 98 50" stroke="#2bb673" stroke-width="7" stroke-dasharray="9 27" fill="none" stroke-linecap="round"/>
+      <path d="M22 50 Q60 18 98 50" stroke="#3a86ff" stroke-width="7" stroke-dasharray="9 27" stroke-dashoffset="-12" fill="none" stroke-linecap="round"/>
+      <g transform="translate(92 36)"><path d="M0 0 q4 14 -2 26" stroke="#ffd23f" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M2 0 q9 12 6 24" stroke="#ff4d6d" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M4 0 q12 8 12 20" stroke="#2bb673" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+      <g transform="translate(26 34)"><circle r="6" fill="#ff6b3d"/><circle cx="-6" cy="-3" r="5" fill="#ff8c42"/><circle cx="5" cy="-6" r="5" fill="#ff8c42"/><circle cx="-2" cy="7" r="5" fill="#ff8c42"/><circle cx="7" cy="4" r="5" fill="#ff8c42"/><circle r="3" fill="#ffd23f"/></g>
+      <circle cx="18" cy="76" r="5" fill="none" stroke="#ffc83d" stroke-width="2.4"/><circle cx="102" cy="76" r="5" fill="none" stroke="#ffc83d" stroke-width="2.4"/>
+      ${browsSVG(mood,'#4a2c14')}${eyesSVG(mood,'#24140c')}
+      <path d="M45.5 57.5 l-2.5 -2 M74.5 57.5 l2.5 -2" stroke="#24140c" stroke-width="1.6" stroke-linecap="round"/>
+      <ellipse cx="41" cy="71" rx="6" ry="3.4" fill="#ff7b9c" opacity=".5"/><ellipse cx="79" cy="71" rx="6" ry="3.4" fill="#ff7b9c" opacity=".5"/>
+      ${mouthSVG(mood)}
+    </svg>`;
+  }
+  if(k==='charles'||k==='anthony'){
     return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
       <defs><linearGradient id="gmA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8fff0"/><stop offset=".5" stop-color="#5fe8c8"/><stop offset="1" stop-color="#1fae95"/></linearGradient>
       <linearGradient id="gmF" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f6fe0"/><stop offset=".5" stop-color="#8fc2ff"/><stop offset="1" stop-color="#2f6fe0"/></linearGradient></defs>
@@ -2034,17 +2112,17 @@ function setMood(mood){const el=$('chAv');if(el){el.innerHTML=avatarSVG(TK,mood)
 
 /* ---------- tema, amizade, status e saudação ---------- */
 function applyTheme(){
-  document.body.classList.remove('th-lua','th-anthony');document.body.classList.add('th-'+TK);
+  document.body.classList.remove(...TEACHER_ORDER.map(k=>'th-'+k),'th-anthony');document.body.classList.add('th-'+TK);
   document.body.style.setProperty('--c',TT().color);document.body.style.setProperty('--tc',TT().color);
 }
 const BOND_LV=[[0,'Novos conhecidos'],[15,'Colegas de aula'],[50,'Amigos'],[120,'Grandes amigos'],[250,'Melhores amigos']];
-let BOND={lua:0,anthony:0};try{BOND=Object.assign(BOND,JSON.parse(localStorage.getItem('chiclete-bond')||'{}'))}catch(e){}
+let BOND={lua:0,charles:0,mark:0,zoe:0};try{BOND=Object.assign(BOND,JSON.parse(localStorage.getItem('chiclete-bond')||'{}'));if(BOND.anthony){BOND.charles=(BOND.charles||0)+BOND.anthony;delete BOND.anthony}}catch(e){}
 function bondInfo(k=TK){const x=BOND[k]||0;let i=0;BOND_LV.forEach((l,j)=>{if(x>=l[0])i=j});
   const next=BOND_LV[i+1];return {x,i,name:BOND_LV[i][1],pct:next?Math.round((x-BOND_LV[i][0])/(next[0]-BOND_LV[i][0])*100):100,next:next?next[1]:null}}
 function addBond(n){const before=bondInfo().i;BOND[TK]=(BOND[TK]||0)+n;try{localStorage.setItem('chiclete-bond',JSON.stringify(BOND))}catch(e){}
   const a=bondInfo();if(a.i>before){const d=document.createElement('div');d.className='bondup';d.innerHTML=`${avHTML(TK,'proud','')}<div style="margin-top:8px">💞 Você e ${TT().name} agora são</div><div style="font-size:22px;color:${TT().color}">${a.name}!</div>`;
     d.querySelector('.av').style.cssText='width:90px;height:90px;margin:0 auto';document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}}
-function todayStatus(k=TK){const t=TEACHERS[k],n=Math.floor(Date.now()/864e5)+(k==='anthony'?3:0);return t.status[n%t.status.length]}
+function todayStatus(k=TK){const t=TEACHERS[k],n=Math.floor(Date.now()/864e5)+TEACHER_ORDER.indexOf(k)*3;return t.status[n%t.status.length]}
 function greeting(){
   const t=TT(),g=t.greet,n=MEM.name||'',hr=new Date().getHours(),day=Math.floor(Date.now()/864e5);
   if(!MEM.sessions&&!(BOND[TK]>0))return g.f;
@@ -2064,7 +2142,7 @@ function renderHero(){
     <div class="bond"><div class="lbl"><span>💞 Amizade: <b>${b.name}</b></span><span>${b.next?'próximo: '+b.next:'nível máximo!'}</span></div><div class="bar"><i style="width:${b.pct}%"></i></div></div>
     <button class="lessonbtn tfont" id="heroLesson"><b>▶ Começar aula ${nextLessonIdx()+1}: ${GUIDED[nextLessonIdx()].e} ${esc(GUIDED[nextLessonIdx()].t)}</b><small>5 passos · uns 5 minutos · ${t.name} te guia em português</small></button>
     <div class="cta"><button class="btn bigbtn" id="heroGo" style="flex:1">💬 Conversar livre</button><button class="btn bigbtn" id="heroProf" style="flex:1">👤 Conhecer ${t.name}</button></div>
-    <div class="switch">${Object.entries(TEACHERS).map(([k,x])=>`<button data-k="${k}" class="${k===TK?'on':''}" style="--sc:${x.color}">${avHTML(k,'happy')}<span>${x.name}<small>${k===TK?'seu professor':'trocar'}</small></span></button>`).join('')}</div>`;
+    <div class="switch">${TEACHER_ORDER.map(k=>[k,TEACHERS[k]]).map(([k,x])=>`<button data-k="${k}" class="${k===TK?'on':''}" style="--sc:${x.color}">${avHTML(k,'happy')}<span>${x.name}<small>${k===TK?'atual':x.accent}</small></span></button>`).join('')}</div>`;
   $('hero').querySelector('.av').onclick=aliveLine;typeSpeech($('hero').querySelector('.speech'),greeting());$('heroProf').onclick=openProfile;
   $('heroLesson').onclick=()=>startGuided(TK);
   $('heroGo').onclick=()=>startChat(TK);
@@ -2072,10 +2150,7 @@ function renderHero(){
 }
 
 /* ---------- professores "vivos" ---------- */
-const ALIVE={
- lua:['Ei! 😄 Bora treinar 5 minutinhos comigo?','Tô com uma música na cabeça… 🎶 "Hello, hello, how are you today?" Grudou!','Sabia que chiclete em inglês é **bubble gum**? 🍬','O Biscoito deitou no meu teclado de novo… 🐱 Enquanto isso, bora praticar?','Hoje eu acordei animada! Vamos aprender uma frase nova? ✨','Psiu! Errar faz parte. Eu tô aqui pra te ajudar, sem julgamento. 💖'],
- anthony:['Hey! 👊 Uma aula rápida e pronto, combinado?','Tô afinando o violão aqui… 🎸 Bora praticar enquanto isso?','Dica do dia: americano fala **gonna** no lugar de "going to". Relax! 😄','Passo a passo, sem pressa. **Let\'s go!**','Voltei do basquete agora. 🏀 Bora treinar o inglês também?','Sabe o que funciona? Um pouquinho todo dia. **Consistency!** 💪']
-};
+const ALIVE=Object.fromEntries(TEACHER_ORDER.map(k=>[k,TEACHERS[k].alive]));
 function typeSpeech(el,text){
   if(!el)return;clearInterval(el._t);el.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
   const html=esc(text).replace(/\*\*(.+?)\*\*/g,'<b class="enx">$1</b>');
@@ -2104,9 +2179,8 @@ function renderGCard(){
 }
 function guidedIntro(){
   const g=GUIDED[LU.g.l],s=g.steps[0],n=MEM.name;
-  const msg=TK==='anthony'
-    ?`E aí${n?', '+n:''}! 👊 Hoje: ${g.e} ${g.t}. Primeira jogada: **${s.phrase}** ("${s.pt}"). Manda aí!`
-    :`Oi${n?', '+n:''}! 😊 Hoje é ${g.e} ${g.t}. Começa assim: **${s.phrase}** ("${s.pt}"). Tenta aí!`;
+  const t=TT();
+  const msg=`${t.saud}${n?', '+n:''}! ${t.em} Hoje é ${g.e} ${g.t}. ${t.start}: **${s.phrase}** ("${s.pt}"). ${t.go}`;
   const raw=`MSG: ${msg}\nOPTS: ${s.opts.join(' | ')}`;
   LU.hist=[{role:'assistant',content:raw}];
   const row=document.createElement('div');row.className='mrow';row.innerHTML=avHTML(TK,'happy');
@@ -2132,33 +2206,20 @@ function guidedDone(){
 
 /* ---------- apresentação imediata (sem esperar a IA) ---------- */
 function introFor(k){
-  const n=MEM.name,known=!!n&&(MEM.sessions>1||(BOND[k]||0)>0);
+  const t=TEACHERS[k],n=MEM.name,known=!!n&&(MEM.sessions>1||(BOND[k]||0)>0);
+  const okOpts=['I\'m good, thanks! = Tô bem, obrigado(a)!','I\'m great! And you? = Tô ótimo(a)! E você?','I\'m a little tired. = Tô um pouco cansado(a).'];
+  const nameOpts=['Hi! My name is … = Oi! Meu nome é …','Nice to meet you! = Prazer em te conhecer!','I\'m a beginner. = Eu sou iniciante.'];
+  const ela=t.art==='a'?'a':'o';
   if(LU.bi){
-    const okOpts=['I\'m good, thanks! = Tô bem, obrigado(a)!','I\'m great! And you? = Tô ótimo(a)! E você?','I\'m a little tired. = Tô um pouco cansado(a).'];
-    const nameOpts=['Hi! My name is … = Oi! Meu nome é …','Nice to meet you! = Prazer em te conhecer!','I\'m a beginner. = Eu sou iniciante.'];
-    if(k==='anthony'){
-      if(n&&known)return {msg:`E aí, ${n}! 👊 Bom te ver. **How's it going?** ("Como vão as coisas?")`,opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
-      if(n)return {msg:`E aí, ${n}! Sou o Anthony. 👊 Vamos de leve: **How are you?** ("Como você está?")`,opts:okOpts};
-      return {msg:"E aí! Sou o Anthony. 👊 Pra começar: **What's your name?** Responde com **My name is…**",opts:nameOpts,name:true};
-    }
-    if(n&&known)return {msg:`Oi, ${n}! Que saudade! 😊 **How are you today?** ("Como você tá hoje?")`,opts:okOpts};
-    if(n)return {msg:`Oi, ${n}! Eu sou a Lua! 😊 Bora de uma fácil: **How are you today?** ("Como você tá hoje?")`,opts:okOpts};
-    return {msg:"Oi! Eu sou a Lua! 😊 Me conta: **What's your name?** Responde com **My name is…**",opts:nameOpts,name:true};
+    if(n&&known)return {msg:`${t.saud}, ${n}! ${t.em} Que bom te ver de novo! **How are you today?** ("Como você tá hoje?")`,opts:okOpts};
+    if(n)return {msg:`${t.saud}, ${n}! Eu sou ${ela} ${t.name}! ${t.em} Bora de uma fácil: **How are you today?** ("Como você tá hoje?")`,opts:okOpts};
+    return {msg:`${t.saud}! Eu sou ${ela} ${t.name}! ${t.em} Me conta: **What's your name?** Responde com **My name is…**`,opts:nameOpts,name:true};
   }
-  if(k==='anthony'){
-    if(n&&known)return {en:`Hey ${n}! Good to see you again. 👊 How's it going today?`,pt:`E aí, ${n}! Bom te ver de novo. Como estão as coisas hoje?`,
-      opts:['Pretty good, thanks! = Tudo certo, valeu!','Not bad. And you? = Nada mal. E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
-    if(n)return {en:`Hey ${n}! I'm Anthony, your English teacher. 👊 How's it going?`,pt:`E aí, ${n}! Eu sou o Anthony, seu professor de inglês. Como vai?`,
-      opts:['Hi Anthony! I\'m good. = Oi Anthony! Tô bem.','Nice to meet you! = Prazer em te conhecer!','I\'m a little nervous. = Tô um pouco nervoso(a).']};
-    return {en:"Hey! I'm Anthony, your English teacher. 👊 What's your name?",pt:'E aí! Eu sou o Anthony, seu professor de inglês. Qual é o seu nome?',
-      opts:['Hi! Nice to meet you! = Oi! Prazer!','Hello! How are you? = Olá! Como vai?','I\'m a beginner. = Eu sou iniciante.'],name:true};
-  }
-  if(n&&known)return {en:`Hi ${n}! It's me, Lua! 😊 I missed you! How are you today?`,pt:`Oi, ${n}! Sou eu, a Lua! Senti sua falta! Como você está hoje?`,
-    opts:['I\'m good, thanks! = Tô bem, obrigado(a)!','I\'m great! And you? = Tô ótimo(a)! E você?','I\'m a little tired. = Tô um pouco cansado(a).']};
-  if(n)return {en:`Hi ${n}! I'm Lua, your English teacher! 😊 How are you today?`,pt:`Oi, ${n}! Eu sou a Lua, sua professora de inglês! Como você está hoje?`,
-    opts:['Hi Lua! I\'m good! = Oi Lua! Tô bem!','Nice to meet you! = Prazer em te conhecer!','I\'m a little nervous. = Tô um pouco nervoso(a).']};
-  return {en:"Hi! I'm Lua, your English teacher! 😊 What's your name?",pt:'Oi! Eu sou a Lua, sua professora de inglês! Qual é o seu nome?',
-    opts:['Hi Lua! Nice to meet you! = Oi Lua! Prazer!','Hello! How are you? = Olá! Como vai?','I\'m a beginner. = Eu sou iniciante.'],name:true};
+  if(n&&known)return {en:`Hi ${n}! It's me, ${t.name}! ${t.em} Good to see you again! How are you today?`,pt:`${t.saud}, ${n}! Sou eu, ${ela} ${t.name}! Que bom te ver de novo! Como você está hoje?`,opts:okOpts};
+  if(n)return {en:`Hi ${n}! I'm ${t.name}, your English teacher! ${t.em} How are you today?`,pt:`${t.saud}, ${n}! Eu sou ${ela} ${t.name}, ${t.prof} de inglês! Como você está hoje?`,
+    opts:[`Hi ${t.name}! I'm good! = Oi ${t.name}! Tô bem!`,'Nice to meet you! = Prazer em te conhecer!','I\'m a little nervous. = Tô um pouco nervoso(a).']};
+  return {en:`Hi! I'm ${t.name}, your English teacher! ${t.em} What's your name?`,pt:`${t.saud}! Eu sou ${ela} ${t.name}, ${t.prof} de inglês! Qual é o seu nome?`,
+    opts:[`Hi ${t.name}! Nice to meet you! = Oi ${t.name}! Prazer!`,'Hello! How are you? = Olá! Como vai?','I\'m a beginner. = Eu sou iniciante.'],name:true};
 }
 function localIntro(){
   const it=introFor(TK);
@@ -2343,7 +2404,7 @@ function lRender(d,p){
   const extra=(p.natural?`<span class="nat">🗽 Mais natural: ${esc(p.natural)}</span>`:'')+(p.pron?`<span class="pron">🗣️ ${esc(p.pron)}</span>`:'');
   const nw=p.new?p.new.split(';')[0].trim():'';
   const body=p.msg?esc(p.msg).replace(/\*\*(.+?)\*\*/g,'<b class="enx">$1</b>').replace(/\*\*/g,''):p.en?esc(p.en):'';
-  d.innerHTML=(body||`<span class="dots"><i></i><i></i><i></i></span><span class="typingl">${TK==='anthony'?'Anthony está pensando… 🎸':'Lua está pensando… 🎶'}</span>`)+
+  d.innerHTML=(body||`<span class="dots"><i></i><i></i><i></i></span><span class="typingl">${TT().name} está pensando… ${TT().deco}</span>`)+
    (LU.pt&&p.pt?`<small>${esc(p.pt)}</small>`:'')+
    (p.fix?`<span class="fix">✏️ ${esc(p.fix)}</span>`:'')+
    (extra?(LU.simple&&!d._more?`<button class="more">+ mais dicas</button>`:extra):'')+

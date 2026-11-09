@@ -12,7 +12,7 @@
 <meta name="description" content="Aprenda inglês com músicas que grudam na cabeça e professores de IA que lembram de você.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -485,6 +485,35 @@ nav button.on{color:var(--lemon)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--mint);color:#10202a;font-weight:800;padding:10px 16px;border-radius:99px;z-index:20;transition:opacity .3s}
 .done{position:absolute;inset:0;background:#170f2ef0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:20px;z-index:2}
 .done h3{font-size:28px;color:var(--lemon)}
+/* Chico, o chiclete */
+.chico{overflow:visible;display:inline-block}
+.chico-body,.chico-eyes,.chico-bubble,.chico-notes,.chico-flags,.chico-shadow{transform-box:fill-box}
+.chico-live .chico-body{transform-origin:50% 100%;animation:chBounce 2.6s ease-in-out infinite}
+.chico-live .chico-eyes{transform-origin:50% 50%;animation:chBlink 4.2s infinite}
+.chico-live .chico-bubble{transform-origin:50% 40%;animation:chBubble 6s ease-in-out infinite}
+.chico-live .chico-notes{animation:chFloat 2.4s ease-in-out infinite}
+.chico-live .chico-flags{animation:chFloat 3.4s ease-in-out infinite}
+.chico-live .chico-shadow{transform-origin:50% 50%;animation:chShadow 2.6s ease-in-out infinite}
+.chico:not(.chico-live) .chico-bubble{display:none}
+.chico.squish .chico-body{animation:chSquish .5s ease-out}
+.chico.party .chico-body{animation:chJump .7s ease-in-out infinite}
+@keyframes chBounce{0%,100%{transform:scale(1,1)}45%{transform:scale(1.03,.96)}60%{transform:translateY(-6px) scale(.98,1.03)}}
+@keyframes chShadow{0%,100%{transform:scale(1)}60%{transform:scale(.85)}}
+@keyframes chBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes chBubble{0%,45%{transform:scale(0);opacity:1}70%{transform:scale(1);opacity:1}76%{transform:scale(1.18);opacity:0}100%{transform:scale(0);opacity:0}}
+@keyframes chFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes chSquish{0%{transform:scale(1)}30%{transform:scale(1.15,.82)}60%{transform:scale(.9,1.12)}100%{transform:scale(1)}}
+@keyframes chJump{0%,100%{transform:translateY(0) scale(1)}20%{transform:scale(1.08,.9)}50%{transform:translateY(-16px) scale(.95,1.06)}}
+@media (prefers-reduced-motion:reduce){.chico *{animation:none!important}.chico .chico-bubble{display:none}}
+.chico-hero{display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 0 4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.chico-say{position:relative;background:#fff;color:#160f2b;font-weight:700;font-size:15px;line-height:1.35;padding:9px 14px;border-radius:16px;max-width:280px;box-shadow:0 4px 0 #0003;animation:chPop .35s ease-out}
+.chico-say::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-top-color:#fff;border-bottom:0}
+.chico-row{display:flex;align-items:center;gap:8px;margin:6px 0 10px}
+.chico-row .chico-say{animation:chPop .3s ease-out}
+.chico-say.small{font-size:14px;padding:8px 12px;max-width:none;flex:1;text-align:left}
+.chico-say.small::after{left:-7px;top:50%;bottom:auto;margin:-7px 0 0;border:7px solid transparent;border-right-color:#fff;border-left:0}
+@keyframes chPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+
 </style>
 </head>
 <body>
@@ -492,6 +521,7 @@ nav button.on{color:var(--lemon)}
 <div class="wrap" id="home">
   <div class="topbar"><button class="back" data-go="teacher" aria-label="Voltar">←</button><div class="brand"><b>Músicas</b></div><button class="menuBtn" data-menu aria-label="Menu">☰</button></div>
   <p class="sub">Músicas originais que grudam na cabeça. Escute, cante e complete a letra.</p>
+  <div id="songsChico"></div>
   <div class="songs" id="songList"></div>
   <div class="full" style="padding:14px;margin-top:18px">
     <b>🔊 Sem som?</b>
@@ -1568,22 +1598,77 @@ const LV_INFO=[
  ['Intermediário','🌳','Você já se vira! Vamos deixar sua conversa mais natural, com mais inglês.'],
  ['Avançado','🚀','Mandou muito! Conversas quase todas em inglês, com expressões de nativo.']
 ];
+/* ---------- Chico, o chiclete (mascote) ---------- */
+let CHICO_N=0;
+function chicoSVG(size=120,mood='happy',opt={}){
+  const id='ch'+(++CHICO_N);
+  const anim=opt.still?'':' chico-live';
+  const eyes=mood==='wow'
+    ?`<ellipse cx="80" cy="104" rx="9" ry="11" fill="#160f2b"/><ellipse cx="122" cy="104" rx="9" ry="11" fill="#160f2b"/>
+      <circle cx="83" cy="99" r="3.6" fill="#fff"/><circle cx="125" cy="99" r="3.6" fill="#fff"/>`
+    :mood==='love'
+    ?`<path d="M80 112c-9-6-13-11-9-16 3-4 8-2 9 1 1-3 6-5 9-1 4 5 0 10-9 16z" fill="#160f2b"/><path d="M122 112c-9-6-13-11-9-16 3-4 8-2 9 1 1-3 6-5 9-1 4 5 0 10-9 16z" fill="#160f2b"/>`
+    :`<g class="chico-eyes"><ellipse cx="80" cy="105" rx="7.5" ry="9.5" fill="#160f2b"/><ellipse cx="122" cy="105" rx="7.5" ry="9.5" fill="#160f2b"/>
+      <circle cx="82.5" cy="101" r="3" fill="#fff"/><circle cx="124.5" cy="101" r="3" fill="#fff"/></g>`;
+  const mouth=mood==='wow'||mood==='sing'
+    ?`<ellipse cx="101" cy="130" rx="8" ry="${mood==='sing'?9:7}" fill="#5a1236"/><ellipse cx="101" cy="134" rx="5" ry="3" fill="#ff8fb8"/>`
+    :`<path d="M89 125 q12 13 24 0" stroke="#160f2b" stroke-width="4.5" fill="#5a1236" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const notes=(mood==='sing'||opt.notes)
+    ?`<g class="chico-notes"><path d="M160 46v24a7 6 0 1 1-4-5V50l16-4v19a7 6 0 1 1-4-5V42z" fill="#ffe066"/>
+      <path d="M30 60v20a6 5 0 1 1-3.5-4.5V60z M30 60l10 3v5l-10-3z" fill="#4ff0c0"/></g>`:'';
+  const flags=opt.flags===false?'':`<g class="chico-flags">
+      <g transform="translate(18 120) rotate(-12)"><rect width="26" height="18" rx="4" fill="#1fae5b"/><path d="M13 3l10 6-10 6-10-6z" fill="#ffe066"/><circle cx="13" cy="9" r="3.6" fill="#2a5bd7"/></g>
+      <g transform="translate(158 118) rotate(10)"><rect width="26" height="18" rx="4" fill="#fff"/><path d="M0 4h26M0 9h26M0 14h26" stroke="#e8364f" stroke-width="2.4"/><rect width="11" height="9" rx="2" fill="#2a5bd7"/></g></g>`;
+  const bubble=opt.bubble===false?'':`<g class="chico-bubble"><circle cx="101" cy="134" r="20" fill="#ffc2dc" opacity=".88" stroke="#fff" stroke-opacity=".7" stroke-width="2"/><circle cx="101" cy="134" r="20" fill="url(#${id}h)"/><ellipse cx="94" cy="126" rx="6" ry="4" fill="#fff" opacity=".8" transform="rotate(-30 94 126)"/></g>`;
+  return `<svg class="chico${anim} mood-${mood}" width="${size}" height="${size}" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chico, o chiclete">
+  <defs>
+    <radialGradient id="${id}b" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#ffb3d4"/><stop offset=".45" stop-color="#ff6fae"/><stop offset="1" stop-color="#e2337f"/></radialGradient>
+    <radialGradient id="${id}h" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse class="chico-shadow" cx="101" cy="182" rx="50" ry="8" fill="#000" opacity=".28"/>
+  ${flags}
+  <g class="chico-body">
+    <path d="M44 70 q4-34 57-34 q55 0 58 36 q4 26 0 52 q-6 46-58 46 q-50 0-57-44 q-4-28 0-56z" fill="url(#${id}b)"/>
+    <ellipse cx="70" cy="62" rx="20" ry="11" fill="#fff" opacity=".55" transform="rotate(-20 70 62)"/>
+    <circle cx="96" cy="52" r="4.5" fill="#fff" opacity=".6"/>
+    <path d="M44 96 q-5-62 57-64 q62 2 57 64" stroke="#ffe066" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <rect x="30" y="86" width="20" height="34" rx="9" fill="#ffe066"/><rect x="35" y="92" width="10" height="22" rx="5" fill="#4ff0c0"/>
+    <rect x="152" y="86" width="20" height="34" rx="9" fill="#ffe066"/><rect x="157" y="92" width="10" height="22" rx="5" fill="#4ff0c0"/>
+    ${eyes}
+    <ellipse cx="66" cy="124" rx="9" ry="5.5" fill="#ff3d7f" opacity=".45"/><ellipse cx="136" cy="124" rx="9" ry="5.5" fill="#ff3d7f" opacity=".45"/>
+    <g class="chico-mouth">${mouth}</g>
+    ${mood==='happy'?bubble:''}
+  </g>
+  ${notes}
+</svg>`}
+const CHICO_LINES={
+ hi:['Oi! Eu sou o Chico, o chiclete 🍬 Vou grudar o inglês na sua cabeça!','Me aperta! 😆 Eu sou o Chico.','Inglês que gruda igual chiclete. Bora?','Hello! Quer dizer "olá". Viu? Já aprendeu! 😄'],
+ songs:['Bora cantar? Escolha uma música 🎵','Música boa gruda! Igual eu 😄','Cante junto, mesmo errando. É assim que gruda!','Sing along! = Cante junto! 🎤'],
+ quiz:['Calma, é só pra eu saber por onde começar 😉','Sem pressão! Se não souber, toque em "Não sei".','Você tá indo bem!','Respira... e escolhe 😄'],
+ right:['Isso! Acertou! 🎉','Uhuul! 🍬','Great job! = Mandou bem!','Sabia que você sabia! 😄'],
+ wrong:['Tudo bem errar! É assim que gruda.','Quase! Bora pra próxima 💪','Relaxa, a gente aprende junto.']};
+function chicoHero(kind,mood='happy',size=150,opt={}){const L=CHICO_LINES[kind]||CHICO_LINES.hi;
+  return `<div class="chico-hero" data-chico="${kind}" role="button" aria-label="Chico, o chiclete. Toque para ele falar">
+  ${opt.noSay?'':`<div class="chico-say">${esc(opt.say||L[0])}</div>`}${chicoSVG(size,mood,opt)}</div>`}
+document.addEventListener('click',e=>{const h=e.target.closest&&e.target.closest('.chico-hero');if(!h)return;
+  const svg=h.querySelector('.chico');if(svg){svg.classList.remove('squish');void svg.getBoundingClientRect();svg.classList.add('squish');setTimeout(()=>svg.classList.remove('squish'),550)}
+  const say=h.querySelector('.chico-say');const L=CHICO_LINES[h.dataset.chico]||CHICO_LINES.hi;
+  if(say){let n;do{n=L[Math.floor(Math.random()*L.length)]}while(L.length>1&&n===say.textContent);say.textContent=n;say.style.animation='none';void say.offsetWidth;say.style.animation=''}
+  try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}
+});
 function logoSVG(h=34){return `<svg class="logo" height="${h}" viewBox="0 0 250 48" xmlns="http://www.w3.org/2000/svg" aria-label="Chiclete English">
-  <circle cx="22" cy="24" r="19" fill="#ff5fa2"/><circle cx="22" cy="24" r="19" fill="url(#lg)" opacity=".35"/>
-  <ellipse cx="15" cy="16" rx="6" ry="4" fill="#fff" opacity=".55" transform="rotate(-25 15 16)"/>
-  <path d="M30 38 Q34 46 41 45 Q35 41 35 35Z" fill="#ff5fa2"/>
-  <path d="M15 27 q3-5 7 0 q4 5 7 0" stroke="#160f2b" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-  <defs><radialGradient id="lg" cx=".3" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b64cff"/></radialGradient></defs>
-  <text x="48" y="31" font-family="Fredoka,Nunito,sans-serif" font-weight="700" font-size="24" fill="#ff5fa2">Chiclete</text>
+  <g transform="translate(-2 0)">${chicoSVG(48,'happy',{still:true,flags:false,bubble:false}).replace('<svg ','<svg x="0" y="0" ')}</g>
+  <text x="50" y="31" font-family="Fredoka,Nunito,sans-serif" font-weight="700" font-size="24" fill="#ff5fa2">Chiclete</text>
   <text x="150" y="31" font-family="Fredoka,Nunito,sans-serif" font-weight="700" font-size="24" fill="#ffe066">English</text></svg>`}
 function onbRender(){
   if(!OB.tk)OB.tk=TK;const S=OB.step;const total=5;
   let html=S>0?`<div class="dots">${[1,2,3,4,5].map(i=>`<i class="${i<=S?'on':''}"></i>`).join('')}</div>`:'';
   if(S===0){
     html+=`<div class="welcome2">${logoSVG(40)}
-      <div class="wduo">${avHTML('lua','happy','av-live')}${avHTML('anthony','happy','av-live')}</div>
+      ${chicoHero('hi','happy',150)}
       <h1 class="wtitle">Aprenda inglês conversando, no seu ritmo.</h1>
       <p class="wsub">Seus professores Lua e Anthony te guiam em português, passo a passo, com músicas que grudam na cabeça.</p>
+      <div class="wduo">${avHTML('lua','happy','av-live')}${avHTML('anthony','happy','av-live')}</div>
       <ul class="wlist"><li>🗣️ Converse falando ou tocando nas respostas</li><li>📘 Aulas curtas de 5 minutos</li><li>🎵 Músicas originais pra fixar</li></ul>
       <button class="btn main bigbtn" id="obGo" style="width:100%">Vamos começar 🍬</button>
       <div class="meta" style="text-align:center;margin-top:10px">Leva só 2 minutos</div>
@@ -1604,7 +1689,10 @@ function onbRender(){
       <button class="btn main bigbtn" id="obNext" style="width:100%">Começar o teste</button></div>`;
   }else if(S===4){
     const [q,opts,ans]=QUIZ[OB.q];
+    const qm=OB.picked===null?'happy':OB.picked===ans?'love':'wow';
+    const qs=OB.picked===null?CHICO_LINES.quiz[OB.q%CHICO_LINES.quiz.length]:OB.picked===ans?CHICO_LINES.right[OB.q%4]:CHICO_LINES.wrong[OB.q%3];
     html+=`<div class="qhead">📏 Medindo seu nível de inglês</div>
+      <div class="chico-row">${chicoSVG(64,qm,{flags:false,bubble:false})}<div class="chico-say small">${esc(qs)}</div></div>
       <div class="qbar"><i style="width:${Math.round(OB.q/QUIZ.length*100)}%"></i></div>
       <div class="qnum">Pergunta ${OB.q+1} de ${QUIZ.length} · complete a frase</div>
       <div class="qtext">${esc(q)}</div>`+
@@ -1613,7 +1701,7 @@ function onbRender(){
   }else{
     const lv=OB.score<=2?0:OB.score<=4?1:OB.score<=5?2:3;OB.lv=lv;const I=LV_INFO[lv];
     html+=`<div class="qhead">📏 Resultado do teste de nível</div>
-      <div class="lvres"><div class="lvbig">${I[1]}</div><h2>Seu nível: ${I[0]}</h2>
+      <div class="lvres">${chicoHero('right','love',120,{say:'Pronto! Agora sei como te ajudar 🎉',flags:true})}<h2>Seu nível: ${I[0]}</h2>
       <div class="lvmeter">${LV_INFO.map((x,i)=>`<div class="${i<=lv?'on':''}"><i></i><span>${x[0]}</span></div>`).join('')}</div>
       <p class="big2">${I[2]}</p><div class="meta">Você acertou ${OB.score} de ${QUIZ.length}. Dá pra mudar o nível quando quiser.</div></div>
       <h2 style="font-size:21px;margin-top:20px">Escolha seu professor</h2><p class="sub" style="margin-bottom:4px">Toque pra ouvir a voz de cada um.</p><div class="tpick" id="obPick" style="margin-top:10px"></div>
@@ -2509,6 +2597,7 @@ $('lPt').onclick=()=>{LU.pt=!LU.pt;$('lPt').textContent='🇧🇷 Tradução: '+
 $('lVoiceMode').onclick=()=>{LU.voice=!LU.voice;$('lVoiceMode').textContent='🎧 Modo voz: '+(LU.voice?'sim':'não');$('lVoiceMode').classList.toggle('on',LU.voice);
   if(LU.voice){toast('Modo voz: '+TT().name+' fala e o microfone abre em seguida');if(!LU.busy)lListen()}};
 document.querySelectorAll('.logoSlot').forEach(e=>e.innerHTML=logoSVG(32));
+try{$('songsChico').innerHTML=chicoHero('songs','sing',110,{bubble:false})}catch(e){}
 if(D.lv!=null)LU.lv=D.lv;
 renderHome();show('teacher');initTeacher();rollDay();updateToday();
 if(!D.onboarded){$('onb').classList.remove('hidden');onbRender()}

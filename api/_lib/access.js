@@ -21,7 +21,8 @@ export const json = (obj, status = 200) =>
 const sbAdmin = (path, init = {}) =>
   fetch(SB_URL() + path, {
     ...init,
-    headers: { apikey: SB_SERVICE(), authorization: 'Bearer ' + SB_SERVICE(), 'content-type': 'application/json', ...(init.headers || {}) },
+    // Chaves novas (sb_secret_...) vão só no cabeçalho apikey; as antigas (JWT) também no Authorization.
+    headers: { apikey: SB_SERVICE(), ...(SB_SERVICE().startsWith('sb_') ? {} : { authorization: 'Bearer ' + SB_SERVICE() }), 'content-type': 'application/json', ...(init.headers || {}) },
   });
 
 // Confere o token de login enviado pelo app e devolve o usuário.

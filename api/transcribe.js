@@ -3,6 +3,8 @@
 // Opcional: só funciona se a variável OPENAI_API_KEY estiver configurada na Vercel.
 // Sem ela, o app mostra ao aluno como usar o ditado do teclado.
 
+import { guard } from './_lib/access.js';
+
 export const config = { runtime: 'edge' };
 
 const MAX_BYTES = 6 * 1024 * 1024; // ~30 s de áudio
@@ -15,6 +17,8 @@ export default async function handler(req) {
   if (req.method === 'GET') return json({ enabled: !!process.env.OPENAI_API_KEY });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
+  const blocked = await guard(req);
+  if (blocked) return blocked;
   const accessCode = process.env.ACCESS_CODE;
   const sent = (req.headers.get('x-access-code') || '').trim().toLowerCase();
   if (accessCode && sent !== accessCode.trim().toLowerCase()) return json({ error: 'forbidden' }, 401);

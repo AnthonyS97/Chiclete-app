@@ -2,6 +2,8 @@
 // Recebe a conversa do app, chama a API do Claude e devolve a resposta em streaming.
 // A chave da API fica SÓ aqui no servidor (variável ANTHROPIC_API_KEY na Vercel).
 
+import { guard } from './_lib/access.js';
+
 export const config = { runtime: 'edge' };
 
 const MODELS = {
@@ -34,6 +36,8 @@ export default async function handler(req) {
     return json({ key: true, format: apiKey.trim().startsWith('sk-ant-') ? 'ok' : 'unexpected', auth });
   }
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  const blocked = await guard(req);
+  if (blocked) return blocked;
   if (!apiKey) return json({ error: 'missing_api_key' }, 500);
 
   // Teste fechado opcional: se ACCESS_CODE estiver definido, o app pede o código.

@@ -514,6 +514,20 @@ nav button.on{color:var(--lemon)}
 .chico-say.small::after{left:-7px;top:50%;bottom:auto;margin:-7px 0 0;border:7px solid transparent;border-right-color:#fff;border-left:0}
 @keyframes chPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 
+
+.planban{display:block;width:100%;text-align:center;margin:0 0 10px;padding:11px 14px;border-radius:16px;background:linear-gradient(90deg,#ffe06622,#ff5fa222);border:1px solid #ffe06655;color:#fff;font-size:15px;font-weight:600}
+.planban b{color:var(--lemon)} .planban u{color:var(--lemon);text-underline-offset:3px}
+.planban.warn{background:linear-gradient(90deg,#ff5fa233,#b64cff33);border-color:#ff5fa288}
+#authSheet,#payWall{z-index:60}
+.sheet.acc{max-height:92vh;overflow:auto;padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+.gbtn{width:100%;background:#fff;color:#1f1f1f;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700}
+.orline{display:flex;align-items:center;gap:10px;color:#ffffff88;margin:14px 0;font-size:14px}.orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line)}
+.plan{position:relative;display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;margin:8px 0;padding:16px;border-radius:18px;background:var(--card);border:2px solid var(--line);color:#fff}
+.plan b{font-size:20px} .plan .pr{font-size:20px;font-weight:800;color:var(--lemon);text-align:right} .plan .pr small{font-size:13px;color:#ffffffaa;font-weight:600}
+.plan .sub2{grid-column:1/-1;font-size:14px;color:#ffffffbb}
+.plan.best{border-color:var(--lemon);box-shadow:0 0 0 3px #ffe06633;margin-top:18px}
+.plan .tagx{position:absolute;top:-12px;left:14px;background:var(--lemon);color:#160f2b;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px}
+.plan:disabled{opacity:.6}
 </style>
 </head>
 <body>
@@ -704,6 +718,7 @@ nav button.on{color:var(--lemon)}
 </nav>
 <div class="drawer hidden" id="drawer"><div class="panel">
   <div style="margin-bottom:14px"><span class="logoSlot"></span></div>
+  <button class="item" id="accBtn"><span class="ic">👤</span><span>Minha conta<small>Login, teste grátis e assinatura</small></span></button>
   <button class="item" data-go="teacher"><span class="ic">🧑‍🏫</span><span>Professores<small>Conversa, aulas e missões</small></span></button>
   <button class="item" data-go="home"><span class="ic">🎵</span><span>Músicas<small>Trilha com 13 músicas em 4 níveis</small></span></button>
   <button class="item" data-go="cards"><span class="ic">🃏</span><span>Meus cards<small>Revise suas palavras</small></span></button>
@@ -1462,6 +1477,108 @@ document.addEventListener('click',e=>{
 $('testSound').onclick=beep;
 
 /* ===================== SERVIDOR DE IA (api/chat) ===================== */
+/* ---------- conta: login (Supabase) e assinatura (Mercado Pago) ---------- */
+const ACC={cfg:null,sb:null,session:null,me:null,ready:null,afterLogin:null};
+function authOn(){return !!(ACC.cfg&&ACC.cfg.auth&&ACC.sb)}
+function authHeaders(){const t=ACC.session&&ACC.session.access_token;return t?{authorization:'Bearer '+t}:{}}
+const brl=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
+ACC.ready=(async()=>{
+  try{
+    if(!location.protocol.startsWith('http'))return;
+    const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;
+    ACC.cfg=await r.json();if(!ACC.cfg.auth)return;
+    const m=await import('https://esm.sh/@supabase/supabase-js@2');
+    ACC.sb=m.createClient(ACC.cfg.supabaseUrl,ACC.cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+    const {data}=await ACC.sb.auth.getSession();ACC.session=data&&data.session||null;
+    ACC.sb.auth.onAuthStateChange((ev,s)=>{const was=!!ACC.session;ACC.session=s||null;
+      if(s&&!was){closeAuthSheet();refreshMe().then(()=>{if(ACC.me&&ACC.me.state==='trial')celebrate('🎁 Conta criada! Seus '+ACC.me.days+' dias grátis começaram.');const f=ACC.afterLogin;ACC.afterLogin=null;f&&f()})}
+      if(!s){ACC.me=null;renderPlanBanner()}});
+    if(ACC.session)await refreshMe();
+    const q=new URLSearchParams(location.search).get('pago');
+    if(q){history.replaceState(null,'',location.pathname);
+      if(q==='erro')toast('O pagamento não foi concluído. Você pode tentar de novo quando quiser.');
+      else if(q==='pendente')toast('Pagamento em análise. Assim que for aprovado, tudo é liberado.');
+      else{for(let i=0;i<6&&!(ACC.me&&ACC.me.state==='paid');i++){await new Promise(r=>setTimeout(r,2000));await refreshMe()}
+        if(ACC.me&&ACC.me.state==='paid')celebrate('🎉 Bem-vindo ao Chiclete Premium!');else toast('Pagamento recebido! A liberação pode levar alguns minutos.')}}
+  }catch(e){console.warn('auth',e)}
+  renderPlanBanner();
+})();
+async function refreshMe(){
+  if(!authOn()||!ACC.session){ACC.me=null;renderPlanBanner();return null}
+  try{const r=await fetch('/api/me',{headers:authHeaders(),cache:'no-store'});ACC.me=r.ok?await r.json():null}catch(e){}
+  renderPlanBanner();return ACC.me;
+}
+function celebrate(msg){
+  const d=document.createElement('div');d.className='bondup';d.innerHTML=`${chicoSVG(110,'love',{flags:false,bubble:false})}<div style="margin-top:6px;font-size:19px">${esc(msg)}</div>`;
+  document.body.appendChild(d);setTimeout(()=>d.remove(),3200);
+}
+function renderPlanBanner(){
+  const hero=$('hero');if(!hero)return;let b=$('planBanner');
+  if(!b){b=document.createElement('button');b.id='planBanner';b.className='planban';hero.parentNode.insertBefore(b,hero);b.onclick=()=>ACC.session?openPaywall():openAuthSheet()}
+  if(!authOn()){b.classList.add('hidden');return}
+  const me=ACC.me;b.classList.remove('hidden','warn');
+  if(!ACC.session){b.innerHTML='🎁 <b>7 dias grátis</b> com tudo liberado · <u>Criar conta</u>';return}
+  if(!me){b.classList.add('hidden');return}
+  if(me.state==='paid'){b.classList.add('hidden');return}
+  if(me.state==='trial'){b.innerHTML=`🎁 Teste grátis: <b>falta${me.days>1?'m':''} ${me.days} dia${me.days>1?'s':''}</b> · <u>Ver planos</u>`;return}
+  b.classList.add('warn');b.innerHTML='⏰ Seu teste grátis acabou · <u>Assinar a partir de '+brl(ACC.cfg.plans.annual/12)+'/mês</u>';
+}
+function closeAuthSheet(){const s=$('authSheet');if(s)s.remove()}
+function openAuthSheet(reason){
+  if(!authOn())return;closeAuthSheet();
+  const s=document.createElement('div');s.className='shade';s.id='authSheet';
+  s.innerHTML=`<div class="sheet acc">
+    <div style="text-align:center">${chicoSVG(96,'happy',{flags:false})}</div>
+    <div class="big" style="font-size:24px;text-align:center">${reason==='trial'?'Bora continuar? Crie sua conta':'Crie sua conta ou entre'}</div>
+    <div class="meta" style="text-align:center;margin:6px 0 16px"><b style="color:var(--lemon)">7 dias grátis</b> com tudo liberado. Não precisa de cartão.</div>
+    ${ACC.cfg.google?`<button class="btn bigbtn gbtn" id="accGoogle"><svg width="22" height="22" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> Entrar com Google</button>
+    <div class="orline"><span>ou</span></div>`:''}
+    <label class="meta" for="accEmail" style="display:block;margin-bottom:6px">Seu e-mail</label>
+    <input class="inp2" id="accEmail" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" style="font-size:18px;padding:14px">
+    <button class="btn main bigbtn" id="accSend" style="width:100%;margin-top:12px">✉️ Receber link de acesso</button>
+    <div class="meta" id="accMsg" style="text-align:center;margin-top:10px">Sem senha: enviamos um link, você toca e já entra.</div>
+    <button class="linkbtn" id="accLater">Agora não</button></div>`;
+  document.body.appendChild(s);
+  const g=s.querySelector('#accGoogle');if(g)g.onclick=async()=>{g.disabled=true;
+    const {error}=await ACC.sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
+    if(error){g.disabled=false;$('accMsg').textContent='Não consegui abrir o Google agora. Tente pelo e-mail.'}};
+  const send=async()=>{const em=$('accEmail').value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){$('accMsg').textContent='Confira o e-mail: parece que falta alguma coisa.';return}
+    const b=$('accSend');b.disabled=true;b.textContent='Enviando…';
+    const {error}=await ACC.sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+'/'}});
+    if(error){b.disabled=false;b.textContent='✉️ Receber link de acesso';$('accMsg').textContent=/rate|seconds/i.test(error.message)?'Espere um minutinho e tente de novo.':'Não consegui enviar agora. Tente de novo.';return}
+    b.textContent='✅ Link enviado!';$('accMsg').innerHTML=`Abra o e-mail que enviamos para <b>${esc(em)}</b> e toque no link. Olhe também no spam.`};
+  $('accSend').onclick=send;$('accEmail').onkeydown=e=>{if(e.key==='Enter')send()};
+  $('accLater').onclick=closeAuthSheet;s.onclick=e=>{if(e.target===s)closeAuthSheet()};
+}
+function openPaywall(expired){
+  if(!authOn())return;if(!ACC.session)return openAuthSheet();
+  const P=ACC.cfg.plans,me=ACC.me||{},paid=me.state==='paid';
+  const s=document.createElement('div');s.className='shade';s.id='payWall';
+  s.innerHTML=`<div class="sheet acc">
+    <div style="text-align:center">${chicoSVG(96,paid?'love':'sing',{flags:false,bubble:false})}</div>
+    <div class="big" style="font-size:24px;text-align:center">${paid?'Você é Chiclete Premium 💖':expired?'Seu teste grátis acabou':'Chiclete Premium'}</div>
+    <div class="meta" style="text-align:center;margin:6px 0 14px">${paid?'Obrigado por apoiar o app! Seu acesso vai até '+new Date(me.until).toLocaleDateString('pt-BR')+'.':'Professores sem limite, todas as músicas, aulas, missões e voz natural.'}</div>
+    ${paid?'':`
+    <button class="plan best" data-plan="annual"><span class="tagx">🎁 4 meses de presente</span><b>Anual</b><span class="pr">${brl(P.annual)} <small>à vista</small></span><span class="sub2">Equivale a ${brl(P.annual/12)}/mês · Pix ou cartão</span></button>
+    <button class="plan" data-plan="monthly"><b>Mensal</b><span class="pr">${brl(P.monthly)} <small>/mês</small></span><span class="sub2">Cartão · cancele quando quiser</span></button>
+    <div class="meta" id="payMsg" style="text-align:center;margin-top:8px">Pagamento seguro pelo Mercado Pago.</div>`}
+    <div class="meta" style="text-align:center;margin-top:12px">${esc(me.email||'')}</div>
+    <div class="row" style="justify-content:center;gap:8px;margin-top:6px"><button class="btn" id="payClose">${paid?'Fechar':'Agora não'}</button><button class="btn" id="paySignOut">Sair da conta</button></div></div>`;
+  document.body.appendChild(s);
+  s.querySelectorAll('.plan').forEach(b=>b.onclick=async()=>{
+    if(!ACC.cfg.payments){$('payMsg').textContent='Os pagamentos ainda estão sendo ativados. Volte em breve! 🍬';return}
+    s.querySelectorAll('.plan').forEach(x=>x.disabled=true);$('payMsg').textContent='Abrindo o Mercado Pago…';
+    try{const r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json',...authHeaders()},body:JSON.stringify({plan:b.dataset.plan})});
+      const j=await r.json();if(j.url){location.href=j.url;return}throw new Error(j.error)}
+    catch(e){s.querySelectorAll('.plan').forEach(x=>x.disabled=false);$('payMsg').textContent='Não consegui abrir o pagamento agora. Tente de novo.'}});
+  $('payClose').onclick=()=>s.remove();s.onclick=e=>{if(e.target===s)s.remove()};
+  $('paySignOut').onclick=async()=>{await ACC.sb.auth.signOut();s.remove();toast('Você saiu da conta.')};
+}
+function openAccount(){if(!authOn()){toast('As contas ainda não foram ativadas neste app.');return}ACC.session?refreshMe().then(()=>openPaywall(ACC.me&&ACC.me.state==='expired')):openAuthSheet()}
+// Chamado quando o servidor recusa por falta de login ou de assinatura.
+function needLogin(){return new Promise(res=>{ACC.afterLogin=()=>res(true);openAuthSheet('trial');
+  const t=setInterval(()=>{if(!$('authSheet')){clearInterval(t);if(!ACC.session)res(false)}},400)})}
 function friendlyError(status,info){
   const det=((info&&info.detail)||'').toLowerCase();
   if(info.error==='missing_api_key')return 'O app ainda não tem a chave da IA. Na Vercel, adicione ANTHROPIC_API_KEY em Settings → Environment Variables e faça Redeploy.';
@@ -1483,28 +1600,34 @@ function askCode(){return new Promise(res=>{
   s.querySelector('#codeNo').onclick=()=>done('');
 })}
 async function serverTTS(text,teacher,slow){
-  const r=await fetch('/api/tts',{method:'POST',headers:{'content-type':'application/json','x-access-code':accessCode()},body:JSON.stringify({text,teacher,slow})});
+  const r=await fetch('/api/tts',{method:'POST',headers:{'content-type':'application/json','x-access-code':accessCode(),...authHeaders()},body:JSON.stringify({text,teacher,slow})});
   if(!r.ok)throw new Error('tts '+r.status);return await r.blob();
 }
 async function serverTranscribe(blob,lang){
   const fd=new FormData();const ext=/mp4|m4a/.test(blob.type)?'m4a':/ogg/.test(blob.type)?'ogg':'webm';
   fd.append('file',blob,'fala.'+ext);fd.append('lang',lang);
-  const r=await fetch('/api/transcribe',{method:'POST',headers:{'x-access-code':accessCode()},body:fd});
+  const r=await fetch('/api/transcribe',{method:'POST',headers:{'x-access-code':accessCode(),...authHeaders()},body:fd});
   if(!r.ok)throw new Error('stt '+r.status);
   const j=await r.json();return j.text||'';
 }
 function accessCode(){try{return localStorage.getItem('chiclete-code')||''}catch(e){return ''}}
 async function serverSample(messages,opts={}){
   if(typeof messages==='string')messages=[{role:'user',content:messages}];
-  const send=()=>fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json','x-access-code':accessCode()},
+  await ACC.ready;
+  const send=()=>fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json','x-access-code':accessCode(),...authHeaders()},
     body:JSON.stringify({messages,quality:opts.modelTier==='complex'?'max':'fast'})});
-  let r=await send();
-  if(r.status===401){
-    const c=await askCode();
-    if(c){try{localStorage.setItem('chiclete-code',c)}catch(e){}r=await send()}
+  let r=await send(),info=null;
+  if(r.status===401||r.status===402){
+    try{info=await r.clone().json()}catch(e){info={}}
+    if(info.error==='login_required'){if(await needLogin()){r=await send();info=null}}
+    else if(info.error==='payment_required'){await refreshMe();openPaywall(true);
+      const e=new Error('payment');e.code='not_granted';e.friendly='Seu teste grátis acabou. Assine o Chiclete Premium para continuar conversando com '+TT().name+'. 💖';throw e}
+    else{const c=await askCode();
+      if(c){try{localStorage.setItem('chiclete-code',c)}catch(e){}r=await send();info=null}}
   }
   if(!r.ok){
-    let info={};try{info=await r.json()}catch(e){}
+    if(!info){info={};try{info=await r.json()}catch(e){}}
+    if(info.error==='login_required'){const e=new Error('login');e.code='not_granted';e.friendly='Crie sua conta grátis para conversar com '+TT().name+'. São 7 dias com tudo liberado! 🎁';throw e}
     const e=new Error('http '+r.status);e.code=r.status===429?'rate_limited':r.status===401?'not_granted':'error';
     e.friendly=friendlyError(r.status,info);throw e;
   }
@@ -1735,7 +1858,10 @@ function onbFinish(skip){
   D.onboarded=true;saveD();$('onb').classList.add('hidden');updTabs();
   if(LU.inited){$('lLevel').querySelectorAll('button').forEach((x,i)=>x.classList.toggle('on',i===LU.lv))}
   renderMem();updateToday();window.scrollTo(0,0);
-  if(!skip)setTimeout(()=>startGuided(TK,0),250);
+  if(!skip){
+    const go=()=>setTimeout(()=>startGuided(TK,0),250);
+    ACC.ready.then(()=>{if(authOn()&&!ACC.session){ACC.afterLogin=go;openAuthSheet('trial')}else go()});
+  }
 }
 
 const VOCAB=[["What's up?", "E aí? / Beleza?", "Hey Mike, what's up?", 0, ["social"]], ["How's it going?", "Como vai? / Tudo certo?", "Hi! How's it going?", 0, ["social"]], ["Pretty good.", "Tudo bem, tranquilo.", "How are you? — Pretty good, thanks!", 0, ["social"]], ["Not bad.", "Nada mal.", "How was your day? — Not bad.", 0, ["social"]], ["No worries.", "Sem problemas / De boa.", "Sorry I'm late! — No worries.", 0, ["social"]], ["My bad.", "Foi mal.", "Oops, my bad! I took your coffee.", 0, ["social"]], ["Sounds good!", "Fechou! / Combinado!", "Let's meet at 6. — Sounds good!", 0, ["social", "fun"]], ["See you later!", "Até mais!", "Bye! See you later!", 0, ["social"]], ["Take care!", "Se cuida!", "Have a good night. Take care!", 0, ["social"]], ["Have a good one!", "Tenha um bom dia! (informal)", "Thanks! Have a good one!", 0, ["social", "shopping"]], ["Same here.", "Comigo também / Eu também.", "I'm so tired. — Same here.", 0, ["social", "feelings"]], ["Me too.", "Eu também.", "I love pizza. — Me too!", 0, ["social"]], ["Sure!", "Claro!", "Can you help me? — Sure!", 0, ["social"]], ["Good job!", "Mandou bem!", "You finished it? Good job!", 0, ["social", "work"]], ["I'm hungry.", "Estou com fome.", "I'm hungry. Let's eat!", 0, ["food", "feelings"]], ["I'm bored.", "Estou entediado(a).", "I'm bored. Let's watch a movie.", 0, ["feelings", "fun"]], ["I'm sick.", "Estou doente.", "I can't go to work. I'm sick.", 0, ["health", "feelings"]], ["lyrics", "letra de música", "I love the lyrics of this song.", 0, ["music"]], ["cell phone", "celular (EUA)", "My cell phone is dead.", 0, ["tech"]], ["Text me.", "Me manda mensagem.", "Text me when you get home.", 0, ["tech", "social"]], ["take a shower", "tomar banho", "I take a shower every morning.", 0, ["routine"]], ["fries", "batata frita (EUA)", "A burger and fries, please.", 0, ["food"]], ["Can I get…?", "Pode me ver…? / Me vê…?", "Can I get a large coffee?", 0, ["food", "shopping"]], ["For here or to go?", "Pra comer aqui ou pra levar?", "For here or to go? — To go, please.", 0, ["food"]], ["Excuse me.", "Com licença.", "Excuse me, where is the restroom?", 0, ["social", "travel"]], ["restroom", "banheiro (em lugares públicos, EUA)", "Where's the restroom?", 0, ["travel", "food"]], ["I'm running late.", "Estou atrasado(a).", "Sorry, I'm running late. Ten minutes!", 1, ["social", "work", "routine"]], ["I'm on my way.", "Tô a caminho.", "I'm on my way! See you soon.", 1, ["social", "routine"]], ["hang out", "sair / passar um tempo junto", "Do you want to hang out this weekend?", 1, ["fun", "social"]], ["grab a coffee", "tomar um café (rapidinho)", "Let's grab a coffee after work.", 1, ["food", "social", "work"]], ["It's on me.", "É por minha conta.", "Don't worry about the check. It's on me.", 1, ["food", "social"]], ["Hold on a sec.", "Espera um segundo.", "Hold on a sec, I'm looking for my keys.", 1, ["social", "routine"]], ["Can you give me a hand?", "Pode me dar uma mão?", "This box is heavy. Can you give me a hand?", 1, ["social", "routine"]], ["I'm starving!", "Tô morrendo de fome!", "Let's order pizza. I'm starving!", 1, ["food", "feelings"]], ["I'm into…", "Eu curto…", "I'm into hip-hop and video games.", 1, ["fun", "music", "social"]], ["awesome", "incrível / muito bom", "The concert was awesome!", 1, ["fun", "opinion", "music"]], ["kind of", "meio que / mais ou menos", "I'm kind of tired today.", 1, ["feelings", "opinion"]], ["pretty (good/cool)", "bem / bastante (pretty good = bem bom)", "The movie was pretty good.", 1, ["opinion"]], ["to be broke", "estar sem grana", "I can't go out tonight. I'm broke.", 1, ["shopping", "fun"]], ["on sale", "em promoção", "These shoes are on sale!", 1, ["shopping"]], ["Can I try it on?", "Posso provar?", "I like this jacket. Can I try it on?", 1, ["shopping"]], ["apartment", "apartamento (EUA)", "My apartment is small but cozy.", 1, ["routine"]], ["vacation", "férias (EUA)", "I'm going on vacation next week.", 1, ["travel", "work"]], ["downtown", "centro da cidade", "Let's meet downtown.", 1, ["travel"]], ["gas station", "posto de gasolina", "Stop at the gas station, please.", 1, ["travel"]], ["take a day off", "tirar um dia de folga", "I'm taking a day off on Friday.", 1, ["work"]], ["work out", "malhar / treinar", "I work out three times a week.", 1, ["health", "routine"]], ["go grocery shopping", "fazer compras no mercado", "I go grocery shopping on Sundays.", 1, ["routine", "shopping"]], ["do the dishes", "lavar a louça", "I cooked, so you do the dishes!", 1, ["routine"]], ["get some rest", "descansar um pouco", "You look tired. Get some rest.", 1, ["health"]], ["I'll call you back.", "Te ligo de volta.", "I'm driving. I'll call you back.", 1, ["tech", "work"]], ["charger", "carregador", "Can I borrow your charger?", 1, ["tech"]], ["catchy", "pegajoso / chiclete (música)", "This song is so catchy!", 1, ["music"]], ["have a song stuck in your head", "estar com uma música grudada na cabeça", "I have this song stuck in my head!", 1, ["music"]], ["turn it up", "aumentar o som", "I love this song! Turn it up!", 1, ["music", "fun"]], ["sing along", "cantar junto", "Everybody sang along at the concert.", 1, ["music"]], ["chorus", "refrão", "The chorus is my favorite part.", 1, ["music"]], ["the check", "a conta (restaurante, EUA)", "Can we get the check, please?", 1, ["food"]], ["refill", "refil / encher de novo (bebida)", "Can I get a refill?", 1, ["food"]], ["round trip", "ida e volta", "A round trip ticket to Miami, please.", 1, ["travel"]], ["I'm down!", "Tô dentro!", "Pizza tonight? — I'm down!", 2, ["social", "fun"]], ["No way!", "Não acredito! / De jeito nenhum!", "You met Taylor Swift? No way!", 2, ["opinion", "social"]], ["for real", "sério mesmo", "For real? You quit your job?", 2, ["opinion", "social"]], ["That makes sense.", "Faz sentido.", "Oh, that makes sense now.", 2, ["opinion", "work"]], ["It's up to you.", "Você que sabe / Você decide.", "Italian or Japanese? It's up to you.", 2, ["social", "food"]], ["Let me know.", "Me avisa.", "Let me know if you need anything.", 2, ["work", "social"]], ["I'm beat.", "Tô morto de cansado.", "Long day. I'm beat.", 2, ["feelings"]], ["I'll figure it out.", "Vou dar um jeito.", "Don't worry, I'll figure it out.", 2, ["work", "opinion"]], ["run errands", "resolver coisas na rua", "I need to run some errands this morning.", 2, ["routine"]], ["catch up", "colocar o papo em dia", "Let's grab lunch and catch up!", 2, ["social"]], ["take a rain check", "deixar pra próxima", "Can I take a rain check on dinner?", 2, ["social", "fun"]], ["bail (on plans)", "furar (um compromisso)", "Sorry, I have to bail tonight.", 2, ["social", "fun"]], ["grab a bite", "comer alguma coisa", "Want to grab a bite before the movie?", 2, ["food", "fun"]], ["split the check", "dividir a conta", "Let's split the check.", 2, ["food"]], ["tip", "gorjeta", "In the US, people usually tip 15 to 20 percent.", 2, ["food", "travel"]], ["leftovers", "sobras de comida", "I'm having leftovers for lunch.", 2, ["food", "routine"]], ["to be swamped", "estar atolado(a) de coisas", "I'm swamped at work this week.", 2, ["work"]], ["deadline", "prazo", "The deadline is Friday.", 2, ["work"]], ["follow up", "dar retorno / acompanhar", "I'll follow up by email tomorrow.", 2, ["work"]], ["heads-up", "aviso / alerta prévio", "Just a heads-up: the meeting moved to 3.", 2, ["work"]], ["call it a day", "encerrar por hoje", "It's 7 p.m. Let's call it a day.", 2, ["work"]], ["commute", "trajeto pro trabalho", "My commute is about 40 minutes.", 2, ["work", "routine"]], ["work from home", "trabalhar de casa", "I work from home on Mondays.", 2, ["work", "tech"]], ["layover", "escala (voo)", "I have a two-hour layover in Dallas.", 2, ["travel"]], ["carry-on", "bagagem de mão", "I'm only bringing a carry-on.", 2, ["travel"]], ["jet lag", "fuso / cansaço de viagem", "I still have jet lag.", 2, ["travel"]], ["binge-watch", "maratonar (série)", "I binge-watched the whole season.", 2, ["fun", "tech"]], ["spoiler", "spoiler", "No spoilers, please! I haven't seen it.", 2, ["fun"]], ["a banger", "uma música muito boa (gíria)", "This new song is a banger.", 2, ["music"]], ["hit the gym", "ir pra academia", "I'm gonna hit the gym after work.", 2, ["health", "routine"]], ["catch a cold", "pegar um resfriado", "I think I'm catching a cold.", 2, ["health"]], ["gonna / wanna", "going to / want to (fala informal)", "I'm gonna call her. Wanna come?", 2, ["social"]], ["Fair enough.", "Justo / Faz sentido.", "I'm too tired to go. — Fair enough.", 2, ["opinion"]], ["I see what you mean.", "Entendo o que você quer dizer.", "I see what you mean, but I disagree.", 2, ["opinion"]], ["It's not a big deal.", "Não é nada demais.", "Relax, it's not a big deal.", 2, ["opinion", "feelings"]], ["I'm all ears.", "Sou todo ouvidos.", "Tell me everything. I'm all ears.", 2, ["social"]], ["stoked", "empolgado(a)", "I'm so stoked for the trip!", 2, ["feelings", "fun", "travel"]], ["low-key", "meio que / discretamente (gíria)", "I low-key love this song.", 2, ["music", "opinion"]], ["hit it off", "se dar bem logo de cara", "We hit it off right away.", 3, ["social"]], ["be on the fence", "estar em dúvida", "I'm on the fence about the job offer.", 3, ["opinion", "work"]], ["a no-brainer", "decisão óbvia", "Free pizza? That's a no-brainer.", 3, ["opinion"]], ["get the hang of it", "pegar o jeito", "Driving is hard at first, but you'll get the hang of it.", 3, ["routine", "work"]], ["wing it", "improvisar", "I didn't prepare. I'm just gonna wing it.", 3, ["work", "fun"]], ["be on the same page", "estar alinhados", "Let's make sure we're on the same page.", 3, ["work"]], ["go the extra mile", "fazer além do esperado", "She always goes the extra mile for clients.", 3, ["work"]], ["the bottom line", "o resumo / o que importa", "The bottom line is we need more time.", 3, ["work", "opinion"]], ["beat around the bush", "enrolar / fazer rodeio", "Stop beating around the bush. What happened?", 3, ["opinion", "social"]], ["bite off more than you can chew", "abraçar o mundo", "I bit off more than I could chew this semester.", 3, ["work"]], ["burned out", "esgotado(a)", "I was totally burned out last year.", 3, ["work", "health", "feelings"]], ["side hustle", "bico / renda extra", "Her side hustle is selling cakes online.", 3, ["work"]], ["ghost (someone)", "sumir / dar ghost", "He ghosted me after our second date.", 3, ["social", "tech"]], ["FOMO", "medo de ficar de fora", "I have serious FOMO about that festival.", 3, ["fun", "tech", "feelings"]], ["doomscroll", "rolar o feed sem parar", "Stop doomscrolling and go to sleep!", 3, ["tech"]], ["vibe with", "curtir / combinar com (gíria)", "I really vibe with this playlist.", 3, ["music", "social"]], ["It slaps.", "Está muito bom (gíria, música/comida)", "This track slaps!", 3, ["music", "food"]], ["no cap", "sem mentira / papo reto (gíria)", "Best burger in town, no cap.", 3, ["opinion", "food"]], ["That's wild.", "Que loucura.", "You moved to Japan? That's wild.", 3, ["opinion", "social"]], ["touch grass", "sair da internet e viver (gíria)", "You've been online all day. Go touch grass!", 3, ["tech", "fun"]]];
@@ -2596,6 +2722,7 @@ $('lPt').onclick=()=>{LU.pt=!LU.pt;$('lPt').textContent='🇧🇷 Tradução: '+
 $('lVoiceMode').onclick=()=>{LU.voice=!LU.voice;$('lVoiceMode').textContent='🎧 Modo voz: '+(LU.voice?'sim':'não');$('lVoiceMode').classList.toggle('on',LU.voice);
   if(LU.voice){toast('Modo voz: '+TT().name+' fala e o microfone abre em seguida');if(!LU.busy)lListen()}};
 document.querySelectorAll('.logoSlot').forEach(e=>e.innerHTML=logoSVG(32));
+$('accBtn').onclick=()=>{$('drawer').classList.add('hidden');openAccount()};
 try{$('songsChico').innerHTML=chicoHero('songs','sing',110,{bubble:false})}catch(e){}
 if(D.lv!=null)LU.lv=D.lv;
 renderHome();show('teacher');initTeacher();rollDay();updateToday();

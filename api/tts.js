@@ -4,6 +4,8 @@
 // Os trechos são gerados em paralelo e unidos num único áudio MP3.
 // Opcional: usa a OPENAI_API_KEY. Sem ela, o app usa a voz do próprio celular.
 
+import { guard } from './_lib/access.js';
+
 export const config = { runtime: 'edge' };
 
 const PERSONA = {
@@ -49,6 +51,8 @@ export default async function handler(req) {
   if (req.method === 'GET') return json({ enabled: !!process.env.OPENAI_API_KEY });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
+  const blocked = await guard(req);
+  if (blocked) return blocked;
   const accessCode = process.env.ACCESS_CODE;
   const sent = (req.headers.get('x-access-code') || '').trim().toLowerCase();
   if (accessCode && sent !== accessCode.trim().toLowerCase()) return json({ error: 'forbidden' }, 401);

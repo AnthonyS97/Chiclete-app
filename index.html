@@ -525,6 +525,7 @@ nav button.on{color:var(--lemon)}
 .planban b{color:var(--lemon)} .planban u{color:var(--lemon);text-underline-offset:3px}
 .planban.warn{background:linear-gradient(90deg,#ff5fa233,#b64cff33);border-color:#ff5fa288}
 #authSheet,#payWall{z-index:60}
+.eyebtn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:auto!important;padding:6px 10px;border-radius:10px;background:#ffffff14;color:#fff;font-weight:700;font-size:14px;border:0}
 .sheet.acc{max-height:92vh;overflow:auto;padding-bottom:calc(28px + env(safe-area-inset-bottom))}
 .gbtn{width:100%;background:#fff;color:#1f1f1f;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700}
 .orline{display:flex;align-items:center;gap:10px;color:#ffffff88;margin:14px 0;font-size:14px}.orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -1544,7 +1545,7 @@ function openAuthSheet(reason,mode){
     <input class="inp2" id="accEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="voce@email.com" style="font-size:18px;padding:14px;width:100%">
     <label class="meta" for="accPass" style="display:block;margin:12px 0 6px">${isNew?'Crie uma senha (mínimo 6 letras ou números)':'Sua senha'}</label>
     <div style="position:relative"><input class="inp2" id="accPass" type="password" autocomplete="${isNew?'new-password':'current-password'}" placeholder="••••••" style="font-size:18px;padding:14px;width:100%;padding-right:64px">
-      <button class="linkbtn" id="accEye" type="button" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);margin:0">ver</button></div>
+      <button id="accEye" type="button" class="eyebtn">ver</button></div>
     <button class="btn main bigbtn" id="accSend" style="width:100%;margin-top:14px">${isNew?'🎁 Criar conta e começar':'▶ Entrar'}</button>
     <div class="meta" id="accMsg" style="text-align:center;margin-top:10px;min-height:20px"></div>
     <button class="btn" id="accSwitch" style="width:100%;margin-top:6px">${isNew?'Já tenho conta: entrar':'Ainda não tenho conta: criar grátis'}</button>

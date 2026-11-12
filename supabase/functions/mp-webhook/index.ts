@@ -35,8 +35,19 @@ const mp = async (path: string) => {
 };
 
 Deno.serve(async (req) => {
-  if (!(await mpToken())) return ok();
   const url = new URL(req.url);
+  // GET ?check=1: confere se a chave do Mercado Pago funciona (não mostra a chave nem dados de clientes)
+  if (req.method === "GET" && url.searchParams.get("check")) {
+    const tk = await mpToken();
+    if (!tk) return new Response(JSON.stringify({ token: false }), { headers: { "content-type": "application/json" } });
+    const me = await fetch("https://api.mercadopago.com/users/me", { headers: { authorization: "Bearer " + tk } });
+    const mej = me.ok ? await me.json() : {};
+    const pref = await fetch("https://api.mercadopago.com/checkout/preferences", { method: "POST", headers: { authorization: "Bearer " + tk, "content-type": "application/json" },
+      body: JSON.stringify({ items: [{ title: "Teste Chiclete", quantity: 1, unit_price: 1, currency_id: "BRL" }], external_reference: "check" }) });
+    const pj = pref.ok ? await pref.json() : await pref.json().catch(() => ({}));
+    return new Response(JSON.stringify({ token: true, conta: me.status, pais: mej.site_id || null, link_pagamento: pref.ok && !!pj.init_point, erro: pref.ok ? null : (pj.message || pref.status) }), { headers: { "content-type": "application/json" } });
+  }
+  if (!(await mpToken())) return ok();
   let body: any = {};
   try { body = await req.json(); } catch { /* vazio */ }
   const type = String(body.type || body.topic || url.searchParams.get("type") || url.searchParams.get("topic") || "");

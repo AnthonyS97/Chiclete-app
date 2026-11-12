@@ -18,7 +18,8 @@ export default async function handler(req) {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const blocked = await guard(req);
-  if (blocked) return blocked;
+  // falas curtas (treino de pronúncia das músicas) também funcionam antes de criar a conta
+  if (blocked && !(blocked.status === 401 && Number(req.headers.get('content-length') || 0) < 400000)) return blocked;
   const accessCode = process.env.ACCESS_CODE;
   const sent = (req.headers.get('x-access-code') || '').trim().toLowerCase();
   if (accessCode && sent !== accessCode.trim().toLowerCase()) return json({ error: 'forbidden' }, 401);

@@ -556,6 +556,9 @@ nav button.on{color:var(--lemon)}
 .repdots{display:flex;gap:6px;justify-content:center;margin:12px 0}.repdots i{width:12px;height:12px;border-radius:50%;background:#ffffff22}.repdots i.cur{outline:2px solid #fff}
 .repdots i.ok{background:#4ff0c0}.repdots i.mid{background:#ffd23f}.repdots i.low{background:#ff6b8b}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+.micbox .col{display:flex;flex-direction:column;gap:8px;margin-top:12px}.micbox .col .btn{width:100%;text-align:center;text-decoration:none;display:block}
+.micsteps li{margin:6px 0;line-height:1.45}
 </style>
 </head>
 <body>
@@ -1478,7 +1481,7 @@ function captureSpeech(onLevel){
     if(SR){try{const r=new SR();r.lang='en-US';r.interimResults=false;r.maxAlternatives=1;let txt='';
       r.onresult=e=>{txt=Array.from(e.results).map(x=>x[0].transcript).join(' ')};r.onerror=e=>{if(/not-allowed/.test(e.error))reject(new Error('perm'))};r.onend=()=>resolve(txt);
       captureSpeech.stop=()=>{try{r.stop()}catch(e){}};onLevel&&onLevel(0.05);r.start();return}catch(e){}}
-    reject(new Error('nomic'));
+    reject(new Error(micEnv().inApp?'perm':'unsupported'));
   });
 }
 $('repHear').onclick=()=>sayLine(R.i,false);
@@ -1488,10 +1491,12 @@ $('repNext').onclick=()=>{if(R.i<P.song.lines.length-1){R.i++;repShow();sayLine(
 $('repMic').onclick=async()=>{
   if(R.busy){captureSpeech.stop&&captureSpeech.stop();return}
   try{speechSynthesis.cancel()}catch(e){}stopSongVoice();try{stopTeacherAudio()}catch(e){}
+  if((await micPermState())==='denied'){micBlocked(micEnv().inApp?'inapp':'denied',()=>$('repMic').click());return}
+  await Promise.race([STT_READY,new Promise(r=>setTimeout(r,1500))]);
   R.busy=true;$('repMic').classList.add('live');$('repHint').textContent='Pode falar… (toque de novo quando terminar)';$('repRes').classList.add('hidden');
   try{const t=await captureSpeech(lv=>{if(lv<0){$('repMic').classList.remove('live');$('repMic').classList.add('wait');$('repHint').textContent='Ouvindo o que você disse…'}else $('repMic').style.setProperty('--lv',Math.min(1,lv*8).toFixed(2))});
     repResult((t||'').trim())}
-  catch(e){toast(/perm|NotAllowed/i.test(String(e&&(e.name||e.message)))?'Libere o microfone nas configurações do navegador e tente de novo.':'Não consegui usar o microfone aqui. Tente pelo app no Safari ou Chrome.')}
+  catch(e){micBlocked(micErrReason(e),()=>$('repMic').click())}
   finally{R.busy=false;$('repMic').classList.remove('live','wait')}
 };
 document.querySelectorAll('.nextstep[data-next]').forEach(b=>b.onclick=()=>{setMode(b.dataset.next);window.scrollTo({top:0,behavior:'smooth'})});
@@ -2742,7 +2747,7 @@ function lSugs(p){
   $('lSugs').innerHTML=parts.length?`<div class="sughead">👉 Sua vez! Toque numa resposta ou no botão Falar</div>`+parts.map(([en,pt],i)=>`<button data-i="${i}"><b>${esc(en)}</b>${pt&&LU.pt?`<small>${esc(pt)}</small>`:''}</button>`).join(''):'';
   if(parts.length)setTimeout(()=>{const dk=$('dock');if(dk&&!$('lChatWrap').classList.contains('hidden'))window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'})},120);
   $('lSugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const en=parts[+b.dataset.i][0];
-    if(/…|\.\.\./.test(en)){const base=en.replace(/\s*(…|\.\.\.)\s*$/,' ');$('lInput').value=base+(MEM.name&&/name is/i.test(base)?MEM.name:'');showKb();toast('Complete a frase e toque em ➤');return}
+    if(/…|\.\.\./.test(en)){const base=en.replace(/\s*(…|\.\.\.)\s*$/,'').trim();if(MEM.name&&/name is/i.test(base)){lSendText(base+' '+MEM.name);return}toast('🎤 Fale a frase completa: "'+base+' …"');lListen();return}
     say(en,lRate(),null,tVoice(),TT().pitch);lSendText(en,true)});
 }
 async function lAsk(){
@@ -2791,40 +2796,86 @@ function closeMic(){try{rec&&rec.abort&&rec.abort()}catch(e){}try{MR.rec&&MR.rec
 const MIC_SVG='<svg class="micico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="2.5" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11.5a7 7 0 0 0 14 0"/><path d="M12 18.5v3"/></svg>';
 const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 let STT_ON=false;
-try{if(typeof serverTranscribe==='function'&&location.protocol.startsWith('http'))fetch('/api/transcribe').then(r=>r.ok?r.json():{}).then(j=>{STT_ON=!!(j&&j.enabled)}).catch(()=>{})}catch(e){}
+let STT_READY=Promise.resolve();
+try{if(typeof serverTranscribe==='function'&&location.protocol.startsWith('http'))STT_READY=fetch('/api/transcribe').then(r=>r.ok?r.json():{}).then(j=>{STT_ON=!!(j&&j.enabled)}).catch(()=>{})}catch(e){}
+/* ---------- microfone: ambiente, bloqueios e como liberar (nunca manda pro teclado) ---------- */
+function micEnv(){
+  const ua=navigator.userAgent||'';
+  const android=/Android/i.test(ua);
+  const inApp=/Instagram|FBAN|FBAV|FB_IAB|Line\/|WhatsApp|Snapchat|TikTok|musical_ly|Twitter|LinkedInApp|GSA\//i.test(ua)||(android&&/; wv\)/.test(ua));
+  const browser=/SamsungBrowser/i.test(ua)?'samsung':/CriOS/i.test(ua)?'chrome-ios':/FxiOS|Firefox/i.test(ua)?'firefox':/EdgiOS|EdgA|Edg\//i.test(ua)?'edge':/Chrome/i.test(ua)?'chrome':/Safari/i.test(ua)?'safari':'other';
+  const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  const app=/Instagram/i.test(ua)?'Instagram':/FBAN|FBAV|FB_IAB/i.test(ua)?'Facebook':/WhatsApp/i.test(ua)?'WhatsApp':/TikTok|musical_ly/i.test(ua)?'TikTok':'outro aplicativo';
+  return {ios:IS_IOS,android,inApp,browser,standalone,app};
+}
+async function micPermState(){try{if(navigator.permissions&&navigator.permissions.query){const r=await navigator.permissions.query({name:'microphone'});return r.state}}catch(e){}return 'unknown'}
+const APP_URL=location.origin+'/';
+function openInBrowserBtn(env){
+  if(env.android)return `<a class="btn main bigbtn" href="intent://${location.host}/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(APP_URL)};end">🌐 Abrir no Chrome</a>`;
+  if(env.ios)return `<a class="btn main bigbtn" href="x-safari-${APP_URL}">🧭 Abrir no Safari</a>`;
+  return '';
+}
+function micBlocked(reason,retry){
+  const env=micEnv(),s=micSheet();clearTimeout(micTimer);
+  retry=retry||lListen;
+  let title,intro,steps='',btns='';
+  if(reason==='inapp'||env.inApp){
+    title='Abra o Chiclete no navegador';
+    intro=`Você abriu o app dentro do ${env.app}, e ele não deixa usar o microfone. No navegador funciona certinho:`;
+    steps=env.ios?`<li>Toque no botão <b>Abrir no Safari</b> aqui embaixo</li><li>Se não abrir, toque nos <b>três pontinhos ⋯</b> do ${env.app} e escolha <b>Abrir no navegador</b></li><li>No Safari, toque em <b>Falar</b> e em <b>Permitir</b></li>`
+      :`<li>Toque no botão <b>Abrir no Chrome</b> aqui embaixo</li><li>Se não abrir, toque nos <b>três pontinhos ⋮</b> do ${env.app} e escolha <b>Abrir no Chrome</b></li><li>No Chrome, toque em <b>Falar</b> e em <b>Permitir</b></li>`;
+    btns=openInBrowserBtn(env)+`<button class="btn bigbtn" id="micCopy">📋 Copiar link do app</button>`;
+  }else if(reason==='nomic'){
+    title='Não encontrei o microfone';
+    intro='O celular não liberou nenhum microfone para o app. Confira:';
+    steps='<li>Se estiver com fone Bluetooth, desconecte e tente de novo</li><li>Feche outros apps que usam o microfone (ligação, gravador, WhatsApp de áudio)</li><li>Toque em <b>Tentar de novo</b></li>';
+    btns=`<button class="btn main bigbtn" id="micAgain">🎤 Tentar de novo</button>`;
+  }else if(reason==='unsupported'){
+    title='Este navegador não libera o microfone';
+    intro=env.ios?'No iPhone, o microfone funciona no <b>Safari</b>.':'No Android, o microfone funciona no <b>Chrome</b>.';
+    steps=env.ios?'<li>Toque em <b>Abrir no Safari</b></li><li>No Safari, toque em <b>Falar</b> e depois em <b>Permitir</b></li>':'<li>Toque em <b>Abrir no Chrome</b></li><li>No Chrome, toque em <b>Falar</b> e depois em <b>Permitir</b></li>';
+    btns=openInBrowserBtn(env)+`<button class="btn bigbtn" id="micCopy">📋 Copiar link do app</button>`;
+  }else{ // denied
+    title='Libere o microfone em 3 toques';
+    intro='O microfone está bloqueado para o Chiclete. Faça assim:';
+    if(env.ios&&env.browser==='chrome-ios')steps='<li>Abra os <b>Ajustes</b> do iPhone</li><li>Desça até <b>Chrome</b> e ative <b>Microfone</b></li><li>Volte aqui e toque em <b>Já liberei</b></li>';
+    else if(env.ios&&env.standalone)steps='<li>Abra os <b>Ajustes</b> do iPhone → <b>Apps</b> → <b>Safari</b></li><li>Toque em <b>Microfone</b> e escolha <b>Permitir</b></li><li>Volte aqui e toque em <b>Já liberei</b></li>';
+    else if(env.ios)steps='<li>Na barra de endereço, toque em <b>aA</b> (ou no ícone ao lado do endereço)</li><li>Toque em <b>Ajustes do Site</b> → <b>Microfone</b> → <b>Permitir</b></li><li>Toque em <b>Já liberei</b>. Se não aparecer: <b>Ajustes</b> do iPhone → <b>Apps</b> → <b>Safari</b> → <b>Microfone</b> → <b>Permitir</b></li>';
+    else if(env.browser==='samsung')steps='<li>Toque no <b>cadeado 🔒</b> ao lado do endereço</li><li>Toque em <b>Permissões</b> → <b>Microfone</b> → <b>Permitir</b></li><li>Toque em <b>Já liberei</b></li>';
+    else steps='<li>Toque no ícone <b>⚙︎ ou 🔒</b> ao lado do endereço <b>'+location.host+'</b></li><li>Toque em <b>Permissões</b> → <b>Microfone</b> → <b>Permitir</b></li><li>Toque em <b>Já liberei</b>. Se continuar bloqueado: <b>Configurações</b> do celular → <b>Apps</b> → <b>Chrome</b> → <b>Permissões</b> → <b>Microfone</b> → <b>Permitir</b></li>';
+    btns=`<button class="btn main bigbtn" id="micAgain">✅ Já liberei, tentar de novo</button>`;
+  }
+  s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🔒</div><h3>${title}</h3>
+    <p class="big2">${intro}</p><ol class="micsteps">${steps}</ol>
+    <div class="col">${btns}<button class="btn bigbtn" id="micX">Fechar</button></div></div>`;
+  const a=$('micAgain');if(a)a.onclick=()=>{closeMic();setTimeout(retry,120)};
+  const c=$('micCopy');if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(APP_URL);c.textContent='✅ Link copiado! Cole no navegador'}catch(e){c.textContent=APP_URL}};
+  $('micX').onclick=closeMic;
+}
+function micErrReason(err){const n=String(err&&(err.name||err.message||err.error)||'');const env=micEnv();
+  if(/NotAllowed|Permission|Security|not-allowed|service-not-allowed|perm/i.test(n))return env.inApp?'inapp':'denied';
+  if(/NotFound|NotReadable|audio-capture|nomic|Overconstrained/i.test(n))return env.inApp?'inapp':'nomic';
+  return env.inApp?'inapp':'unsupported'}
 let micTimer=null;
 function showKb(){$('composer').classList.remove('hidden');setTimeout(()=>{$('lInput').focus();$('composer').scrollIntoView({block:'end',behavior:'smooth'})},30)}
 function micView(state,text){
+  if(state==='guide'){micBlocked('unsupported');return}
+  if(state==='perm'){micBlocked('denied');return}
   const s=micSheet();clearTimeout(micTimer);
-  if(state==='guide'){
-    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">${MIC_SVG}</div><h3>Vamos falar pelo teclado</h3>
-      <p class="big2">Aqui o microfone do app não foi liberado. É fácil usar o do teclado:</p>
-      <ol class="micsteps"><li>Toque no botão <b>Abrir teclado</b></li><li>No teclado, toque no <b>microfone</b> (fica embaixo)</li><li>Fale e depois toque em <b>➤ Enviar</b></li></ol>
-      <p class="meta" style="font-size:14px">Dica: se o celular perguntar, toque em <b>Permitir</b> o microfone. Funciona melhor abrindo o app pelo Safari (iPhone) ou Chrome (Android).</p>
-      <div class="row"><button class="btn main bigbtn" id="micKb">⌨️ Abrir teclado</button><button class="btn bigbtn" id="micX">Fechar</button></div></div>`;
-    $('micKb').onclick=()=>{closeMic();showKb()};$('micX').onclick=closeMic;return;
-  }
-  if(state==='perm'){
-    s.innerHTML=`<div class="sheet micbox"><div class="micbig off">🔒</div><h3>Precisamos da sua permissão</h3>
-      <p class="big2">Para ouvir você, o celular precisa liberar o microfone.</p>
-      <ol class="micsteps">${IS_IOS?'<li>Abra <b>Ajustes</b> → <b>Safari</b> → <b>Microfone</b></li><li>Escolha <b>Permitir</b></li><li>Volte aqui e toque em <b>Tentar de novo</b></li>':'<li>Toque no <b>cadeado 🔒</b> ao lado do endereço do site</li><li>Em <b>Microfone</b>, escolha <b>Permitir</b></li><li>Volte e toque em <b>Tentar de novo</b></li>'}</ol>
-      <div class="row"><button class="btn main bigbtn" id="micAgain">🔁 Tentar de novo</button><button class="btn bigbtn" id="micKb">⌨️ Usar teclado</button></div></div>`;
-    $('micAgain').onclick=()=>{closeMic();lListen()};$('micKb').onclick=()=>{closeMic();showKb()};return;
-  }
   const head={listen:'Pode falar agora',rec:'Pode falar agora',wait:'Entendendo o que você disse…',done:'Você disse:'}[state]||'';
   const sub={listen:'Quando terminar, é só parar de falar',rec:'Quando terminar, é só parar de falar',wait:'Só um instante',done:'Enviando…'}[state]||'';
   s.innerHTML=`<div class="sheet micbox"><div class="micbig ${state==='listen'||state==='rec'?'live':state==='wait'?'wait':''}">${state==='wait'?'⏳':MIC_SVG}</div>${state==='listen'||state==='rec'?'<div class="waves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>':''}
     <h3 class="micHead">${head}</h3><div class="meta big2">${sub}</div>
     <div class="mictext">${text?esc(text):(state==='done'?'<span class="meta">Não consegui ouvir. Tente de novo, mais perto do celular.</span>':'<span class="meta">Sua fala aparece aqui</span>')}</div>
     <div class="row">${state==='listen'||state==='rec'?'<button class="btn main bigbtn" id="micStop">✅ Terminei</button>':''}
-      ${state==='done'&&text?'<button class="btn main bigbtn" id="micSend">➤ Enviar agora</button><button class="btn bigbtn" id="micFix">✏️ Corrigir</button>':''}
+      ${state==='done'&&text?'<button class="btn main bigbtn" id="micSend">➤ Enviar agora</button><button class="btn bigbtn" id="micRedo">🔁 Falar de novo</button>':''}
       ${state==='done'&&!text?'<button class="btn main bigbtn" id="micAgain">🔁 Falar de novo</button>':''}
       <button class="btn bigbtn" id="micX">Cancelar</button></div>
     ${state==='listen'||state==='rec'?`<div class="miclang"><button data-l="en-US" class="${micLang==='en-US'?'on':''}">🇺🇸 Estou falando inglês</button><button data-l="pt-BR" class="${micLang==='pt-BR'?'on':''}">🇧🇷 Português</button></div>`:''}</div>`;
   s.querySelectorAll('.miclang button').forEach(b=>b.onclick=()=>{micLang=b.dataset.l;closeMic();setTimeout(lListen,120)});
   const st=$('micStop');if(st)st.onclick=()=>{if(state==='rec'){try{MR.rec.stop()}catch(e){}}else{try{rec.stop()}catch(e){}}};
   const sd=$('micSend');if(sd)sd.onclick=()=>{closeMic();lSendText(text)};
-  const fx=$('micFix');if(fx)fx.onclick=()=>{closeMic();$('lInput').value=text;showKb()};
+  const fx=$('micRedo');if(fx)fx.onclick=()=>{clearInterval(micTimer);closeMic();setTimeout(lListen,120)};
   const ag=$('micAgain');if(ag)ag.onclick=()=>{closeMic();lListen()};
   $('micX').onclick=closeMic;
   if(state==='done'&&text){const h=s.querySelector('.micHead');let n=2;micTimer=setInterval(()=>{n--;if(n<=0){clearInterval(micTimer);closeMic();lSendText(text)}else if(h)h.textContent='Você disse:'},1000);
@@ -2848,7 +2899,7 @@ function recordAndTranscribe(){
       try{const blob=new Blob(MR.chunks,{type:MR.rec.mimeType||'audio/webm'});
         if(blob.size<1500){micView('done','');return}
         const t=await serverTranscribe(blob,micLang.startsWith('pt')?'pt':'en');micView('done',(t||'').trim())}
-      catch(e){micView('guide')}
+      catch(e){micView('done','')}
     };
     MR.rec.start(250);
     // para sozinho quando a pessoa termina de falar
@@ -2864,7 +2915,7 @@ function recordAndTranscribe(){
     }catch(e){}
     setTimeout(()=>{try{MR.rec&&MR.rec.state==='recording'&&MR.rec.stop()}catch(e){}},25000);
     return true;
-  }).catch(err=>{$('lMic').classList.remove('on');if(err&&/NotAllowed|Permission|Security/i.test(err.name||''))micView('perm');else micView('guide');return 'handled'});
+  }).catch(err=>{$('lMic').classList.remove('on');micBlocked(micErrReason(err));return 'handled'});
 }
 function startSR(SR){
   try{
@@ -2872,25 +2923,29 @@ function startSR(SR){
     let txt='',gotAny=false;micView('listen','');
     rec.onresult=e=>{gotAny=true;let t='';for(const r of e.results)t+=r[0].transcript;txt=t;const el=document.querySelector('#micSheet .mictext');if(el)el.textContent=t};
     rec.onerror=e=>{
-      if(/not-allowed|service-not-allowed/.test(e.error)){recOk=false;
-        if(STT_ON){closeMic();recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}else micView(e.error==='not-allowed'?'perm':'guide')}
-      else if(/audio-capture|network|language-not-supported/.test(e.error)){recOk=false;closeMic();recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}
+      if(/not-allowed|service-not-allowed/.test(e.error)){recOk=false;closeMic();
+        if(e.error==='not-allowed')micBlocked(micErrReason(e));else recordAndTranscribe().then(ok=>{if(!ok)micBlocked(micErrReason(e))})}
+      else if(/audio-capture/.test(e.error)){recOk=false;closeMic();micBlocked(micErrReason(e))}
+      else if(/network|language-not-supported/.test(e.error)){recOk=false;closeMic();recordAndTranscribe().then(ok=>{if(!ok)micBlocked('unsupported')})}
     };
     rec.onend=()=>{$('lMic').classList.remove('on');if(recOk===false)return;recOk=true;const sh=$('micSheet');if(!sh||sh.classList.contains('hidden'))return;micView('done',txt.trim())};
     rec.start();$('lMic').classList.add('on');
-  }catch(e){recOk=false;recordAndTranscribe().then(ok=>{if(!ok)micView('guide')})}
+  }catch(e){recOk=false;recordAndTranscribe().then(ok=>{if(!ok)micBlocked(micErrReason(e))})}
 }
-function lListen(){
+async function lListen(){
   try{speechSynthesis.cancel()}catch(e){}try{stopTeacherAudio()}catch(e){}document.body.classList.remove('speaking');
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const canRec=typeof serverTranscribe==='function'&&STT_ON&&!!window.MediaRecorder&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
-  // iPhone: gravação + transcrição é o caminho mais estável. Android: reconhecimento do próprio Chrome.
-  if(canRec&&(IS_IOS||!SR||recOk===false)){recordAndTranscribe().then(ok=>{if(!ok)micView('guide')});return}
-  if(SR&&recOk!==false){startSR(SR);return}
-  if(canRec){recordAndTranscribe().then(ok=>{if(!ok)micView('guide')});return}
-  micView('guide');
+  const env=micEnv(),SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const hasGUM=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+  if(!hasGUM&&!SR){micBlocked(env.inApp?'inapp':'unsupported');return}
+  if((await micPermState())==='denied'){micBlocked(env.inApp?'inapp':'denied');return}
+  micView('listen','');
+  await Promise.race([STT_READY,new Promise(r=>setTimeout(r,1500))]);
+  const canRec=typeof serverTranscribe==='function'&&STT_ON&&!!window.MediaRecorder&&hasGUM;
+  // gravação + transcrição no servidor (melhor qualidade, pede o microfone na hora). Sem servidor: reconhecimento do próprio navegador.
+  if(canRec){recordAndTranscribe().then(ok=>{if(!ok)micBlocked(env.inApp?'inapp':'unsupported')});return}
+  if(SR){startSR(SR);return}
+  micBlocked(env.inApp?'inapp':'unsupported');
 }
-
 function lListenOld(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const fallback=()=>{recOk=false;$('lMicHint').classList.remove('hidden');$('lInput').focus();$('lMic').classList.remove('on')};

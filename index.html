@@ -1494,7 +1494,7 @@ ACC.ready=(async()=>{
     const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;
     ACC.cfg=await r.json();if(!ACC.cfg.auth)return;
     const m=await import('https://esm.sh/@supabase/supabase-js@2');
-    ACC.sb=m.createClient(ACC.cfg.supabaseUrl,ACC.cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+    ACC.sb=m.createClient(ACC.cfg.supabaseUrl,ACC.cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const {data}=await ACC.sb.auth.getSession();ACC.session=data&&data.session||null;
     ACC.sb.auth.onAuthStateChange((ev,s)=>{const was=!!ACC.session;ACC.session=s||null;
       if(s&&!was){closeAuthSheet();refreshMe().then(()=>{if(ACC.me&&ACC.me.state==='trial')celebrate('🎁 Conta criada! Seus '+ACC.me.days+' dias grátis começaram.');const f=ACC.afterLogin;ACC.afterLogin=null;f&&f()})}
@@ -1530,32 +1530,53 @@ function renderPlanBanner(){
   b.classList.add('warn');b.innerHTML='⏰ Seu teste grátis acabou · <u>Assinar a partir de '+brl(ACC.cfg.plans.annual/12)+'/mês</u>';
 }
 function closeAuthSheet(){const s=$('authSheet');if(s)s.remove()}
-function openAuthSheet(reason){
+function openAuthSheet(reason,mode){
   if(!authOn())return;closeAuthSheet();
+  mode=mode||'new';
   const s=document.createElement('div');s.className='shade';s.id='authSheet';
+  const isNew=mode==='new';
   s.innerHTML=`<div class="sheet acc">
-    <div style="text-align:center">${chicoSVG(96,'happy',{flags:false})}</div>
-    <div class="big" style="font-size:24px;text-align:center">${reason==='trial'?'Bora continuar? Crie sua conta':'Crie sua conta ou entre'}</div>
-    <div class="meta" style="text-align:center;margin:6px 0 16px"><b style="color:var(--lemon)">7 dias grátis</b> com tudo liberado. Não precisa de cartão.</div>
-    ${ACC.cfg.google?`<button class="btn bigbtn gbtn" id="accGoogle"><svg width="22" height="22" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> Entrar com Google</button>
-    <div class="orline"><span>ou</span></div>`:''}
+    <div style="text-align:center">${chicoSVG(90,'happy',{flags:false})}</div>
+    <div class="big" style="font-size:24px;text-align:center">${isNew?(reason==='trial'?'Bora continuar? Crie sua conta':'Crie sua conta grátis'):'Entrar na minha conta'}</div>
+    <div class="meta" style="text-align:center;margin:6px 0 14px">${isNew?'<b style="color:var(--lemon)">7 dias grátis</b> com tudo liberado. Não precisa de cartão.':'Use o e-mail e a senha que você cadastrou.'}</div>
+    ${ACC.cfg.google?`<button class="btn bigbtn gbtn" id="accGoogle">G&nbsp; Entrar com Google</button><div class="orline"><span>ou</span></div>`:''}
     <label class="meta" for="accEmail" style="display:block;margin-bottom:6px">Seu e-mail</label>
-    <input class="inp2" id="accEmail" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" style="font-size:18px;padding:14px">
-    <button class="btn main bigbtn" id="accSend" style="width:100%;margin-top:12px">✉️ Receber link de acesso</button>
-    <div class="meta" id="accMsg" style="text-align:center;margin-top:10px">Sem senha: enviamos um link, você toca e já entra.</div>
+    <input class="inp2" id="accEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="voce@email.com" style="font-size:18px;padding:14px;width:100%">
+    <label class="meta" for="accPass" style="display:block;margin:12px 0 6px">${isNew?'Crie uma senha (mínimo 6 letras ou números)':'Sua senha'}</label>
+    <div style="position:relative"><input class="inp2" id="accPass" type="password" autocomplete="${isNew?'new-password':'current-password'}" placeholder="••••••" style="font-size:18px;padding:14px;width:100%;padding-right:64px">
+      <button class="linkbtn" id="accEye" type="button" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);margin:0">ver</button></div>
+    <button class="btn main bigbtn" id="accSend" style="width:100%;margin-top:14px">${isNew?'🎁 Criar conta e começar':'▶ Entrar'}</button>
+    <div class="meta" id="accMsg" style="text-align:center;margin-top:10px;min-height:20px"></div>
+    <button class="btn" id="accSwitch" style="width:100%;margin-top:6px">${isNew?'Já tenho conta: entrar':'Ainda não tenho conta: criar grátis'}</button>
     <button class="linkbtn" id="accLater">Agora não</button></div>`;
   document.body.appendChild(s);
+  const msg=t=>{$('accMsg').innerHTML=t};
   const g=s.querySelector('#accGoogle');if(g)g.onclick=async()=>{g.disabled=true;
     const {error}=await ACC.sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
-    if(error){g.disabled=false;$('accMsg').textContent='Não consegui abrir o Google agora. Tente pelo e-mail.'}};
-  const send=async()=>{const em=$('accEmail').value.trim();
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){$('accMsg').textContent='Confira o e-mail: parece que falta alguma coisa.';return}
-    const b=$('accSend');b.disabled=true;b.textContent='Enviando…';
-    const {error}=await ACC.sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+'/'}});
-    if(error){b.disabled=false;b.textContent='✉️ Receber link de acesso';$('accMsg').textContent=/rate|seconds/i.test(error.message)?'Espere um minutinho e tente de novo.':'Não consegui enviar agora. Tente de novo.';return}
-    b.textContent='✅ Link enviado!';$('accMsg').innerHTML=`Abra o e-mail que enviamos para <b>${esc(em)}</b> e toque no link. Olhe também no spam.`};
-  $('accSend').onclick=send;$('accEmail').onkeydown=e=>{if(e.key==='Enter')send()};
+    if(error){g.disabled=false;msg('Não consegui abrir o Google agora. Use e-mail e senha.')}};
+  $('accEye').onclick=()=>{const i=$('accPass');i.type=i.type==='password'?'text':'password';$('accEye').textContent=i.type==='password'?'ver':'ocultar'};
+  const send=async()=>{
+    const em=$('accEmail').value.trim().toLowerCase(),pw=$('accPass').value;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(em)){msg('Confira o e-mail: parece que falta alguma coisa.');return}
+    if(pw.length<6){msg('A senha precisa ter pelo menos 6 letras ou números.');return}
+    const b=$('accSend'),label=b.textContent;b.disabled=true;b.textContent=isNew?'Criando sua conta…':'Entrando…';msg('');
+    try{
+      if(isNew){
+        const r=await fetch(ACC.cfg.supabaseUrl+'/functions/v1/signup',{method:'POST',headers:{'content-type':'application/json',apikey:ACC.cfg.supabaseKey},body:JSON.stringify({email:em,password:pw,name:MEM.name||''})});
+        const j=await r.json().catch(()=>({}));
+        if(j.error==='exists'){b.disabled=false;b.textContent=label;msg('Esse e-mail já tem conta. Toque em <b>"Já tenho conta: entrar"</b>.');return}
+        if(!r.ok){throw new Error(j.error||'signup')}
+      }
+      const {error}=await ACC.sb.auth.signInWithPassword({email:em,password:pw});
+      if(error){b.disabled=false;b.textContent=label;
+        msg(/invalid/i.test(error.message)?'E-mail ou senha não conferem. Tente de novo.':'Não consegui entrar agora. Tente de novo.');return}
+      // o resto acontece em onAuthStateChange (fecha a tela, mostra os dias grátis e continua)
+    }catch(e){b.disabled=false;b.textContent=label;msg('Não consegui criar a conta agora. Confira a internet e tente de novo.')}
+  };
+  $('accSend').onclick=send;$('accPass').onkeydown=e=>{if(e.key==='Enter')send()};
+  $('accSwitch').onclick=()=>{const em=$('accEmail').value;openAuthSheet(reason,isNew?'login':'new');$('accEmail').value=em};
   $('accLater').onclick=closeAuthSheet;s.onclick=e=>{if(e.target===s)closeAuthSheet()};
+  setTimeout(()=>{try{$('accEmail').focus()}catch(e){}},300);
 }
 function openPaywall(expired){
   if(!authOn())return;if(!ACC.session)return openAuthSheet();

@@ -1494,7 +1494,9 @@ ACC.ready=(async()=>{
     if(!location.protocol.startsWith('http'))return;
     const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;
     ACC.cfg=await r.json();if(!ACC.cfg.auth)return;
-    const m=await import('https://esm.sh/@supabase/supabase-js@2');
+    let m=null;
+    for(const u of ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm','https://esm.sh/@supabase/supabase-js@2']){try{m=await import(u);if(m&&m.createClient)break}catch(e){}}
+    if(!m||!m.createClient){console.warn('supabase-js não carregou');return}
     ACC.sb=m.createClient(ACC.cfg.supabaseUrl,ACC.cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const {data}=await ACC.sb.auth.getSession();ACC.session=data&&data.session||null;
     ACC.sb.auth.onAuthStateChange((ev,s)=>{const was=!!ACC.session;ACC.session=s||null;

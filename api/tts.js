@@ -69,6 +69,18 @@ export default async function handler(req) {
     if (enabled && new URL(req.url).searchParams.get('check')) {
       let auth = 0;
       try { auth = (await fetch('https://api.openai.com/v1/models/gpt-4o-mini-tts', { headers: { Authorization: 'Bearer ' + process.env.OPENAI_API_KEY.trim() } })).status; } catch { auth = -1; }
+      // ?check=voz: gera um áudio bem curto de verdade, para confirmar crédito e vozes
+      if (new URL(req.url).searchParams.get('check') === 'voz') {
+        const out = {};
+        for (const k of ['lua', 'charles', 'mark', 'zoe']) {
+          try {
+            const r = await fetch('https://api.openai.com/v1/audio/speech', { method: 'POST', headers: { Authorization: 'Bearer ' + process.env.OPENAI_API_KEY.trim(), 'content-type': 'application/json' },
+              body: JSON.stringify({ model: process.env.TTS_MODEL || 'gpt-4o-mini-tts', voice: PERSONA[k].voice, input: 'Oi!', instructions: PERSONA[k].pt, response_format: 'mp3' }) });
+            out[k] = r.ok ? (await r.arrayBuffer()).byteLength + ' bytes' : r.status + ' ' + (await r.text()).slice(0, 90);
+          } catch (e) { out[k] = 'erro'; }
+        }
+        return json({ enabled, auth, voz: out });
+      }
       return json({ enabled, auth });
     }
     return json({ enabled });

@@ -10,8 +10,26 @@ const TRIAL_DAYS = 7;
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const MP = () => (Deno.env.get("MP_ACCESS_TOKEN") || "").trim();
 const FN_URL = SB_URL + "/functions/v1";
+// Chave do Mercado Pago: segredo do Supabase ou tabela privada (só o servidor lê).
+let MP_CACHE: { v: string; t: number } | null = null;
+async function mpToken(): Promise<string> {
+  const env = (Deno.env.get("MP_ACCESS_TOKEN") || "").trim();
+  if (env) return env;
+  if (MP_CACHE && Date.now() - MP_CACHE.t < 60000) return MP_CACHE.v;
+  let v = "";
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/rpc/get_private_setting", {
+      method: "POST",
+      headers: { apikey: SERVICE, authorization: "Bearer " + SERVICE, "content-type": "application/json" },
+      body: JSON.stringify({ k: "MP_ACCESS_TOKEN" }),
+    });
+    if (r.ok) v = String((await r.json()) || "").trim();
+  } catch { /* sem chave */ }
+  MP_CACHE = { v, t: Date.now() };
+  return v;
+}
+
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -55,7 +73,7 @@ async function update(id: string, patch: Record<string, unknown>) {
 async function mp(path: string, init: RequestInit = {}) {
   const r = await fetch("https://api.mercadopago.com" + path, {
     ...init,
-    headers: { authorization: "Bearer " + MP(), "content-type": "application/json", ...(init.headers || {}) },
+    headers: { authorization: "Bearer " + (await mpToken()), "content-type": "application/json", ...(init.headers || {}) },
   });
   let body: any = null;
   try { body = await r.json(); } catch { /* vazio */ }
@@ -80,9 +98,10 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch { /* vazio */ }
   let p = await getProfile(user);
+  const hasMP = !!(await mpToken());
 
   if (body.action === "checkout") {
-    if (!MP()) return json({ error: "payments_not_configured" }, 501);
+    if (!hasMP) return json({ error: "payments_not_configured" }, 501);
     const plan = body.plan === "annual" ? "annual" : "monthly";
     const appUrl = String(body.appUrl || "https://chiclete-app.vercel.app").replace(/\/$/, "");
     const email = p.email || user.email;
@@ -114,7 +133,7 @@ Deno.serve(async (req) => {
 
   // status (padrão). Assinatura mensal vencida: confere no Mercado Pago se renovou.
   let st = statusOf(p);
-  if (st.state !== "paid" && p.plan === "monthly" && p.mp_preapproval_id && MP()) {
+  if (st.state !== "paid" && p.plan === "monthly" && p.mp_preapproval_id && hasMP) {
     const r = await mp("/preapproval/" + p.mp_preapproval_id);
     if (r.ok && r.body?.status === "authorized" && r.body.next_payment_date) {
       const until = new Date(new Date(r.body.next_payment_date).getTime() + 3 * 864e5).toISOString();
@@ -122,5 +141,5 @@ Deno.serve(async (req) => {
       st = statusOf(p);
     }
   }
-  return json({ email: p.email || user.email, payments: !!MP(), ...st });
+  return json({ email: p.email || user.email, payments: hasMP, ...st });
 });

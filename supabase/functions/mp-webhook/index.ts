@@ -2,7 +2,24 @@
 // direto no Mercado Pago antes de liberar o acesso.
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const MP = () => (Deno.env.get("MP_ACCESS_TOKEN") || "").trim();
+// Chave do Mercado Pago: segredo do Supabase ou tabela privada (só o servidor lê).
+let MP_CACHE: { v: string; t: number } | null = null;
+async function mpToken(): Promise<string> {
+  const env = (Deno.env.get("MP_ACCESS_TOKEN") || "").trim();
+  if (env) return env;
+  if (MP_CACHE && Date.now() - MP_CACHE.t < 60000) return MP_CACHE.v;
+  let v = "";
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/rpc/get_private_setting", {
+      method: "POST",
+      headers: { apikey: SERVICE, authorization: "Bearer " + SERVICE, "content-type": "application/json" },
+      body: JSON.stringify({ k: "MP_ACCESS_TOKEN" }),
+    });
+    if (r.ok) v = String((await r.json()) || "").trim();
+  } catch { /* sem chave */ }
+  MP_CACHE = { v, t: Date.now() };
+  return v;
+}
 const ok = (status = 200) => new Response(JSON.stringify({ ok: status === 200 }), { status, headers: { "content-type": "application/json" } });
 const isUuid = (s: unknown) => typeof s === "string" && /^[0-9a-f-]{36}$/i.test(s);
 
@@ -13,12 +30,12 @@ const update = (id: string, patch: Record<string, unknown>) =>
     body: JSON.stringify(patch),
   });
 const mp = async (path: string) => {
-  const r = await fetch("https://api.mercadopago.com" + path, { headers: { authorization: "Bearer " + MP() } });
+  const r = await fetch("https://api.mercadopago.com" + path, { headers: { authorization: "Bearer " + (await mpToken()) } });
   return { ok: r.ok, body: r.ok ? await r.json() : null };
 };
 
 Deno.serve(async (req) => {
-  if (!MP()) return ok();
+  if (!(await mpToken())) return ok();
   const url = new URL(req.url);
   let body: any = {};
   try { body = await req.json(); } catch { /* vazio */ }

@@ -1497,7 +1497,7 @@ function captureSpeech(onLevel){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     const canRec=STT_ON&&window.MediaRecorder&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia;
     if(canRec){
-      let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}catch(e){reject(e);return}
+      let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){reject(e);return}
       const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
       let mr;try{mr=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream)}catch(e){stream.getTracks().forEach(t=>t.stop());reject(e);return}
       const ch=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)ch.push(e.data)};
@@ -1527,8 +1527,6 @@ $('repNext').onclick=()=>{if(R.i<P.song.lines.length-1){R.i++;repShow();sayLine(
 $('repMic').onclick=async()=>{
   if(R.busy){captureSpeech.stop&&captureSpeech.stop();return}
   try{speechSynthesis.cancel()}catch(e){}stopSongVoice();try{stopTeacherAudio()}catch(e){}
-  if((await micPermState())==='denied'){micBlocked(micEnv().inApp?'inapp':'denied',()=>$('repMic').click());return}
-  await Promise.race([STT_READY,new Promise(r=>setTimeout(r,1500))]);
   R.busy=true;$('repMic').classList.add('live');$('repHint').textContent='Pode falar… (toque de novo quando terminar)';$('repRes').classList.add('hidden');
   try{const t=await captureSpeech(lv=>{if(lv<0){$('repMic').classList.remove('live');$('repMic').classList.add('wait');$('repHint').textContent='Ouvindo o que você disse…'}else $('repMic').style.setProperty('--lv',Math.min(1,lv*8).toFixed(2))});
     repResult((t||'').trim())}
@@ -2774,6 +2772,11 @@ function micBlocked(reason,retry){
     intro='O celular não liberou nenhum microfone para o app. Confira:';
     steps='<li>Se estiver com fone Bluetooth, desconecte e tente de novo</li><li>Feche outros apps que usam o microfone (ligação, gravador, WhatsApp de áudio)</li><li>Toque em <b>Tentar de novo</b></li>';
     btns=`<button class="btn main bigbtn" id="micAgain">🎤 Tentar de novo</button>`;
+  }else if(reason==='error'){
+    title='Não consegui ligar o microfone';
+    intro='Deu um problema rápido ao abrir o microfone. Vamos tentar de novo:';
+    steps='<li>Feche outros apps que possam estar usando o microfone (ligação, áudio do WhatsApp, gravador)</li><li>Toque em <b>Tentar de novo</b></li><li>Se continuar, feche a aba e abra o app de novo</li>';
+    btns=`<button class="btn main bigbtn" id="micAgain">Tentar de novo</button>`+(MIC_LAST_ERR?`<div class="meta" style="text-align:center">Código: ${esc(MIC_LAST_ERR)}</div>`:'');
   }else if(reason==='unsupported'){
     title='Este navegador não libera o microfone';
     intro=env.ios?'No iPhone, o microfone funciona no <b>Safari</b>.':'No Android, o microfone funciona no <b>Chrome</b>.';
@@ -2796,10 +2799,12 @@ function micBlocked(reason,retry){
   const c=$('micCopy');if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(APP_URL);c.textContent='✅ Link copiado! Cole no navegador'}catch(e){c.textContent=APP_URL}};
   $('micX').onclick=closeMic;
 }
-function micErrReason(err){const n=String(err&&(err.name||err.message||err.error)||'');const env=micEnv();
+function clientLog(what,err){try{fetch('/api/clientlog',{method:'POST',body:JSON.stringify({what,name:err&&(err.name||err.error)||'',msg:String(err&&(err.message||err.error)||err||'').slice(0,200),perm:MIC_LAST_PERM})}).catch(()=>{})}catch(e){}}
+let MIC_LAST_PERM='?',MIC_LAST_ERR='';
+function micErrReason(err){MIC_LAST_ERR=String(err&&(err.name||err.error||err.message)||'');clientLog('mic',err);const n=String(err&&(err.name||err.message||err.error)||'');const env=micEnv();
   if(/NotAllowed|Permission|Security|not-allowed|service-not-allowed|perm/i.test(n))return env.inApp?'inapp':'denied';
   if(/NotFound|NotReadable|audio-capture|nomic|Overconstrained/i.test(n))return env.inApp?'inapp':'nomic';
-  return env.inApp?'inapp':'unsupported'}
+  return env.inApp?'inapp':'error'}
 let micTimer=null;
 function showKb(){$('composer').classList.remove('hidden');setTimeout(()=>{$('lInput').focus();$('composer').scrollIntoView({block:'end',behavior:'smooth'})},30)}
 function micView(state,text){
@@ -2826,13 +2831,13 @@ function micView(state,text){
     s.querySelector('.meta.big2').textContent='Enviando em 2 segundos…';}
 }
 const MR={rec:null,stream:null,chunks:[],cancel:false,ac:null};
-function recordAndTranscribe(){
+function recordAndTranscribe(given){
   if(typeof serverTranscribe!=='function'||!window.MediaRecorder||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return Promise.resolve(false);
   micView('rec','');$('lMic').classList.add('on');
-  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}).then(stream=>{
+  return (given?Promise.resolve(given):navigator.mediaDevices.getUserMedia({audio:true})).then(stream=>{
     MR.stream=stream;MR.chunks=[];MR.cancel=false;
     const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
-    try{MR.rec=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream)}catch(e){stream.getTracks().forEach(t=>t.stop());return false}
+    try{MR.rec=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream)}catch(e){try{MR.rec=new MediaRecorder(stream)}catch(e2){clientLog('mediarecorder',e2);stream.getTracks().forEach(t=>t.stop());return false}}
     MR.rec.ondataavailable=e=>{if(e.data&&e.data.size)MR.chunks.push(e.data)};
     MR.rec.onstop=async()=>{
       try{MR.ac&&MR.ac.close()}catch(e){}MR.ac=null;
@@ -2881,12 +2886,29 @@ async function lListen(){
   const env=micEnv(),SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const hasGUM=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
   if(!hasGUM&&!SR){micBlocked(env.inApp?'inapp':'unsupported');return}
-  if((await micPermState())==='denied'){micBlocked(env.inApp?'inapp':'denied');return}
+  // pede o microfone JÁ, ainda dentro do toque (o iPhone exige isso)
+  let pre=null;
+  if(hasGUM&&window.MediaRecorder){pre=navigator.mediaDevices.getUserMedia({audio:true}).then(st=>({st}),err=>({err}))}
   micView('listen','');
+  MIC_LAST_PERM=await micPermState();
   await Promise.race([STT_READY,new Promise(r=>setTimeout(r,1500))]);
-  const canRec=typeof serverTranscribe==='function'&&STT_ON&&!!window.MediaRecorder&&hasGUM;
-  // gravação + transcrição no servidor (melhor qualidade, pede o microfone na hora). Sem servidor: reconhecimento do próprio navegador.
-  if(canRec){recordAndTranscribe().then(ok=>{if(!ok)micBlocked(env.inApp?'inapp':'unsupported')});return}
+  if(pre){
+    let r=await pre;
+    if(r.err&&!/NotAllowed|Security|Permission/i.test(r.err.name||'')){ // erro passageiro: tenta mais uma vez
+      await new Promise(x=>setTimeout(x,350));
+      r=await navigator.mediaDevices.getUserMedia({audio:true}).then(st=>({st}),err=>({err}));
+    }
+    if(r.st){
+      if(STT_ON&&typeof serverTranscribe==='function'){recordAndTranscribe(r.st).then(ok=>{if(!ok&&SR)startSR(SR);else if(!ok)micBlocked('error')});return}
+      r.st.getTracks().forEach(t=>t.stop());
+      if(SR){startSR(SR);return}
+      micBlocked('error');return;
+    }
+    if(/NotAllowed|Security|Permission/i.test(r.err.name||'')){micBlocked(micErrReason(r.err));return}
+    clientLog('gum',r.err);
+    if(SR){startSR(SR);return}
+    micBlocked(micErrReason(r.err));return;
+  }
   if(SR){startSR(SR);return}
   micBlocked(env.inApp?'inapp':'unsupported');
 }

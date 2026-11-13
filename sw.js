@@ -1,5 +1,5 @@
 // Service worker: deixa o app abrir mesmo com internet ruim (as conversas com a IA ainda precisam de internet).
-const CACHE = 'chiclete-v6';
+const CACHE = 'chiclete-v7';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {

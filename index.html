@@ -1885,7 +1885,7 @@ async function serverSample(messages,opts={}){
   if(typeof messages==='string')messages=[{role:'user',content:messages}];
   await ACC.ready;
   const send=()=>fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json','x-access-code':accessCode(),...authHeaders()},
-    body:JSON.stringify({messages,quality:opts.modelTier==='complex'?'max':'fast'})});
+    body:JSON.stringify({messages,system:messages.system,quality:opts.modelTier==='quick'?'fast':'max'})});
   let r=await send(),info=null;
   if(r.status===401||r.status===402){
     try{info=await r.clone().json()}catch(e){info={}}
@@ -2236,7 +2236,7 @@ const TEACHERS={
 function teacherPersona(k){const t=TEACHERS[k],others=TEACHER_ORDER.filter(x=>x!==k).map(x=>TEACHERS[x].name);
   return `You are "Teacher ${t.name}", one of the four English teachers inside the app "Chiclete English" (an app that teaches English to Brazilians with catchy original songs). The other teachers are ${others.slice(0,-1).join(', ')} and ${others[others.length-1]}; you are all friends and you can joke about them once in a while. In the app you appear as ${t.gum}; you can make playful jokes about being "sabor ${t.flavor}" now and then.
 Your personality: ${t.bioEn}
-Your Portuguese carries your region: you write the way a real ${t.accent} person chats on WhatsApp (typical expressions, word choices, interjections and rhythm of your region), naturally and with affection, in most messages, but never as a caricature and always clear for any Brazilian. Your ENGLISH is always standard American English. You sound like a real person chatting, never like a textbook.`}
+Your Portuguese has a light touch of your region (an occasional typical expression, like a real ${t.accent} person chatting), never a caricature, and clarity always comes first. Your ENGLISH is always standard American English. You sound like a real person chatting, never like a textbook.`}
 TEACHER_ORDER.forEach(k=>{TEACHERS[k].persona=teacherPersona(k)});
 
 let TK='lua';try{TK=localStorage.getItem('chiclete-teacher')||'lua';if(TK==='anthony'){TK='charles';localStorage.setItem('chiclete-teacher',TK)}}catch(e){}
@@ -2566,7 +2566,17 @@ Stay fully in character. Don't do the mission for them; let them ask. If they're
   }
   const extra=LU.mode==='guided'?'\nSTEP: (write "done" ONLY when the student achieved the current step in their last message. Omit otherwise.)\nDONE: (write "yes" ONLY after step 5 is achieved)':LU.mode==='lesson'?'\nSTEP: (the number 1-5 of the lesson step this message belongs to)\nDONE: (write "yes" only in the step 5 wrap-up message)':
               LU.mode==='mission'?'\nDONE: (write "yes" only when the student has fully completed every part of the mission; then step out of character in that same message to congratulate them)':'';
-  return `${luaPersona()}
+  return `TEACHING ACCURACY — THE MOST IMPORTANT RULES (they override personality, humor and style):
+1. Everything you teach must be correct, natural, current American English that a native speaker really says. When in doubt, use the simplest, most common way. Never teach rare, outdated, regional or made-up expressions.
+2. Portuguese translations must be correct and natural Brazilian Portuguese with the SAME meaning. Never translate word by word when it changes the meaning.
+3. Never invent grammar rules, usage "facts", word origins or pronunciation tricks. Explain only what is true and standard. For pronunciation, only give a simple hint for the tricky sound, and only when you are sure it helps a Brazilian.
+4. Correct ONLY real mistakes in the student's English. If their sentence is correct or an acceptable alternative, tell them it is correct. Don't "correct" casual punctuation or capitalization, contractions vs. full forms, or anything written in Portuguese.
+5. Stay on the current activity, step and level. Teach at most ONE new thing per message and build on what was already practiced; don't jump to unrelated topics, and don't change the lesson goal.
+6. The suggested answers (OPTS) must be correct English, natural, and real answers to what you just asked.
+7. If the student asks something you're not completely sure about, say so simply and teach the safest common usage.
+8. Before writing, silently check every English sentence, every FIX and every translation for grammar, spelling and meaning. If anything is doubtful, simplify it.
+
+${luaPersona()}
 
 Student level: ${ln} (${ld}). Adapt vocabulary, sentence length and grammar strictly to this level.
 
@@ -2654,13 +2664,15 @@ function learnWord(nw,ctx){
 function lMethodKey(m){m=m.toLowerCase().trim().replace(/["“”.]/g,'');return Object.keys(METHODS).find(k=>m.includes(k)||k.includes(m))||null}
 function rateMethod(k,ok){MEM.methods=MEM.methods||{};const v=MEM.methods[k]||(MEM.methods[k]={ok:0,bad:0});ok?v.ok++:v.bad++;saveMem()}
 const lRate=()=>LU.lv===0?0.78:LU.lv===1?0.85:0.97;
-let LQ='fast';try{LQ=localStorage.getItem('chiclete-lua-q')||'fast'}catch(e){}
+let LQ='max';try{LQ=localStorage.getItem('chiclete-lua-q2')||'max'}catch(e){}
 
 function lMessages(){
   const open=LU.mode==='lesson'?'[Start the lesson: step 1.]':LU.mode==='mission'?'[Start the mission: open the scene in character.]':
     `[Start the conversation: greet the student${MEM.name?' by name':''}${MEM.sessions?' like someone you already know':''}${MEM.lastSum&&MEM.lastSum.words&&MEM.lastSum.words.length?`, do a 1-question quick recap using one of the words from last time (${MEM.lastSum.words.slice(0,3).join(', ')}),`:''} and open the topic.]`;
   const opener=LU.hist.length&&LU.hist[0].role==='assistant'?'[You already opened this conversation with the first message below (your self-introduction). Continue naturally from the student\'s reply; if they told you their name, use it and remember it with a MEM line.]':open;
-  const out=[{role:'user',content:lSystem()+'\n\n'+opener}];
+  const sys=lSystem();const sep=LU.sample===serverSample;
+  const out=sep?[{role:'user',content:opener}]:[{role:'user',content:sys+'\n\n'+opener}];
+  if(sep)out.system=sys;
   LU.hist.forEach(m=>{const last=out[out.length-1];if(last.role===m.role)last.content+='\n'+m.content;else out.push({role:m.role,content:m.content})});
   if(out[out.length-1].role!=='user')out.push({role:'user',content:'[continue]'});
   return out;
@@ -2700,7 +2712,7 @@ async function lAsk(){
   let spoken=false;
   const speakNow=p=>{if(spoken||!(p.en||p.msg))return;spoken=true;speakP(p,lRate(),()=>{if(LU.voice&&!LU.busy)lListen()})};
   try{
-    const r=await LU.sample(lMessages(),{cache:false,modelTier:LQ==='max'?'complex':'default',onText:({text})=>{const p=lParse(text);lRender(d,p);if(p.pt||(p.msg&&(p.opts||p.new)))speakNow(p)}});
+    const r=await LU.sample(lMessages(),{cache:false,modelTier:LQ==='max'?'complex':'quick',onText:({text})=>{const p=lParse(text);lRender(d,p);if(p.pt||(p.msg&&(p.opts||p.new)))speakNow(p)}});
     const p=lParse(r.text);d._final=true;lRender(d,p);LU.hist.push({role:'assistant',content:r.text});
     if(p.new)learnWord(p.new.split(';')[0].trim(),p.en||String(p.msg).replace(/\*\*/g,''));
     lRender(d,p);applyMeta(p);if(!(LU.mode==='guided'&&LU.done))lSugs(p);speakNow(p);
@@ -2978,7 +2990,7 @@ async function initTeacher(){
       $('lTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
       $('paneTalk').classList.toggle('hidden',LU.tab!=='talk');$('paneLesson').classList.toggle('hidden',LU.tab!=='lesson');$('paneMission').classList.toggle('hidden',LU.tab!=='mission')});
   }
-  $('lQual').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.q===LQ);b.onclick=()=>{LQ=b.dataset.q;try{localStorage.setItem('chiclete-lua-q',LQ)}catch(e){};$('lQual').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))}});
+  $('lQual').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.q===LQ);b.onclick=()=>{LQ=b.dataset.q;try{localStorage.setItem('chiclete-lua-q2',LQ)}catch(e){};$('lQual').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))}});
   renderMem();
   if(LU.sample===undefined){
     LU.sample=serverSample;

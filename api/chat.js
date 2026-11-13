@@ -50,7 +50,8 @@ export default async function handler(req) {
   let body;
   try { body = await req.json(); } catch { return json({ error: 'bad_json' }, 400); }
 
-  const { messages, quality } = body || {};
+  const { messages, quality, system } = body || {};
+  if (system != null && (typeof system !== 'string' || system.length > MAX_CHARS_FIRST)) return json({ error: 'bad_system' }, 400);
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
     return json({ error: 'bad_messages' }, 400);
   }
@@ -64,14 +65,20 @@ export default async function handler(req) {
   if (messages[messages.length - 1].role !== 'user') return json({ error: 'must_end_with_user' }, 400);
 
   // A 1ª mensagem traz as instruções fixas do professor: marcamos para cache (fica mais barato).
-  const apiMessages = messages.map((m, i) =>
-    i === 0
-      ? { role: 'user', content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] }
-      : { role: m.role, content: m.content }
-  );
+  // Instruções do professor no campo "system" (o modelo segue melhor) e em cache (fica mais barato).
+  // Versões antigas do app mandam as instruções na 1ª mensagem: continuam funcionando.
+  const apiMessages = system
+    ? messages.map((m) => ({ role: m.role, content: m.content }))
+    : messages.map((m, i) =>
+        i === 0
+          ? { role: 'user', content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] }
+          : { role: m.role, content: m.content }
+      );
+  const sysBlock = system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : undefined;
 
   // Se o modelo escolhido não existir na conta (404), tenta os modelos reserva.
-  const first = quality === 'max' ? MODELS.max : MODELS.fast;
+  // Conversa com professor: modelo mais preciso por padrão (ensinar certo vem antes de economizar).
+  const first = quality === 'fast' ? MODELS.fast : MODELS.max;
   const candidates = [first, ...FALLBACK_MODELS.filter((m) => m !== first)];
   let upstream, detail = '';
   for (const model of candidates) {
@@ -82,7 +89,7 @@ export default async function handler(req) {
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ model, max_tokens: MAX_OUTPUT_TOKENS, stream: true, messages: apiMessages }),
+      body: JSON.stringify({ model, max_tokens: MAX_OUTPUT_TOKENS, stream: true, temperature: 0.5, ...(sysBlock ? { system: sysBlock } : {}), messages: apiMessages }),
     });
     if (upstream.ok) break;
     detail = await upstream.text().catch(() => '');
